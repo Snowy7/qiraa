@@ -85,6 +85,9 @@ async function load(chapter: number, id: number) {
   if (loaded?.reciterId === reciterId && loaded.chapter === chapter) {
     return loaded.recitation;
   }
+  // Silence the previous surah so it can't move the selection meanwhile.
+  loaded = null;
+  audio!.pause();
   const recitation = await queryClient.ensureQueryData(
     recitationQuery(reciterId, chapter),
   );
@@ -216,8 +219,10 @@ if (audio) {
   audio.addEventListener("waiting", () =>
     useAudio.setState({ status: "loading" }),
   );
+  // Pausing between surahs (nothing loaded) is part of loading the next one.
   audio.addEventListener("pause", () => {
-    if (useAudio.getState().verseKey) useAudio.setState({ status: "paused" });
+    if (useAudio.getState().verseKey && loaded)
+      useAudio.setState({ status: "paused" });
   });
   audio.addEventListener("error", () => {
     if (audio.getAttribute("src")) useAudio.setState({ status: "error" });

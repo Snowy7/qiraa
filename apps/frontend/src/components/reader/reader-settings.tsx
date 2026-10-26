@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useMatch, useNavigate } from "react-router-dom";
 import { Check, ChevronRight } from "lucide-react";
 import {
   Dialog,
@@ -12,12 +13,14 @@ import {
   QURAN_SCRIPTS,
   QURAN_SCRIPT_IDS,
   getReciter,
+  pageOfVerse,
   type QuranScriptId,
 } from "@qiraa/core";
 import { ReciterPicker } from "@/components/audio/reciter-picker";
 import { VerseText } from "@/components/quran/verse-text";
 import { useI18n } from "@/lib/i18n";
-import { useChapterVerses } from "@/lib/quran/data";
+import { queryClient } from "@/lib/query-client";
+import { scriptIndexQuery, useChapterVerses } from "@/lib/quran/data";
 import { usePreferences } from "@/lib/stores/preferences";
 import { cn } from "@/lib/utils";
 import { TranslationPicker, useTranslationName } from "./translation-picker";
@@ -34,6 +37,29 @@ function ScriptPreview({ id }: { id: QuranScriptId }) {
   ) : (
     <div className="h-12 animate-pulse rounded-xl bg-foreground/[0.05]" />
   );
+}
+
+/**
+ * Switching script while reading the mushaf stays on the same ayah: page
+ * numbers differ between layouts (IndoPak has 610 pages).
+ */
+function useChooseScript() {
+  const navigate = useNavigate();
+  const mushafPage = Number(useMatch("/mushaf/:page")?.params.page);
+  return async (next: QuranScriptId) => {
+    const { script: current, set } = usePreferences.getState();
+    if (mushafPage && next !== current) {
+      const [from, to] = await Promise.all(
+        [current, next].map((id) =>
+          queryClient.ensureQueryData(scriptIndexQuery(id)),
+        ),
+      );
+      const verse = from.pageFirstVerse[mushafPage - 1];
+      if (verse)
+        await navigate(`/mushaf/${pageOfVerse(to, verse)}`, { replace: true });
+    }
+    set({ script: next });
+  };
 }
 
 export function SettingRow({
@@ -83,6 +109,7 @@ export function ReadingOptions() {
   const prefs = usePreferences();
   const [picker, setPicker] = useState<"translation" | "reciter" | null>(null);
   const translationName = useTranslationName();
+  const chooseScript = useChooseScript();
 
   return (
     <>
@@ -100,7 +127,7 @@ export function ReadingOptions() {
             return (
               <button
                 key={id}
-                onClick={() => prefs.set({ script: id })}
+                onClick={() => chooseScript(id)}
                 aria-pressed={selected}
                 className={cn(
                   "rounded-3xl border p-4 text-start transition-colors",

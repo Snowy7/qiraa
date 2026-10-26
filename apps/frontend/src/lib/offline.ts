@@ -138,9 +138,12 @@ export async function downloadChapterAudio(
   chapterId: number,
 ) {
   if (!getChapter(chapterId)) return;
-  const recitation = await queryClient.ensureQueryData(
-    recitationQuery(reciterId, chapterId),
-  );
+  // Fetched again (not reused from memory) so the service worker caches the
+  // timings too: they may have loaded before it took control.
+  const recitation = await queryClient.fetchQuery({
+    ...recitationQuery(reciterId, chapterId),
+    staleTime: 0,
+  });
   return run(
     jobId.audio(reciterId, chapterId),
     recitation.sizeBytes,
