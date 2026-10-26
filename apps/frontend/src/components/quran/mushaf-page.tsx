@@ -155,9 +155,9 @@ export const MushafPage = memo(function MushafPage({
 });
 
 /**
- * Scale factor that makes the widest line's words fill the line width (or
- * fit it, at text sizes where they'd overflow). Re-measured when the page
- * resizes; rounded so measuring can't oscillate.
+ * Scale factor that makes the widest line fill 92% of the line width (or
+ * fit it, at text sizes where it would overflow). Re-measured when the page
+ * resizes; rounded down so measuring can't oscillate or overflow.
  */
 function useWordBoost(
   container: RefObject<HTMLDivElement | null>,
@@ -172,18 +172,26 @@ function useWordBoost(
       const lines = [...element.querySelectorAll<HTMLElement>(".mushaf-line")];
       if (lines.length === 0) return;
       const available = lines[0].clientWidth;
+      // How far each line's words reach, edge to edge. The opening pages'
+      // lines are centred and spaced in the words' own size, so this grows
+      // in step with the boost. Words and markers are measured themselves,
+      // as `.mushaf-keep` has no box in a printed line.
       const widest = Math.max(
-        ...lines.map((line) =>
-          [...line.children].reduce(
-            (sum, child) => sum + child.getBoundingClientRect().width,
-            0,
-          ),
-        ),
+        ...lines.map((line) => {
+          const rects = [
+            ...line.querySelectorAll("[data-word], [data-verse-end]"),
+          ].map((item) => item.getBoundingClientRect());
+          if (rects.length === 0) return 0;
+          return (
+            Math.max(...rects.map((rect) => rect.right)) -
+            Math.min(...rects.map((rect) => rect.left))
+          );
+        }),
       );
+      if (widest === 0) return;
       setBoost((current) => {
-        const natural = widest / current;
-        const next = Math.min(1.8, (available * 0.92) / natural);
-        return Math.round(next * 100) / 100;
+        const next = Math.min(1.8, (available * 0.92) / (widest / current));
+        return Math.floor(next * 100) / 100;
       });
     };
     measure();

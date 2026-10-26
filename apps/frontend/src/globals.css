@@ -392,9 +392,21 @@
     white-space: nowrap;
   }
 
+  /* Short, centred lines space their words by a margin in the words' own
+     size, so enlarged opening-page words keep their proportions. */
   .mushaf-line[data-centered] {
     justify-content: center;
-    column-gap: 0.2em;
+  }
+
+  .mushaf-line[data-centered] :is([data-word], [data-verse-end]) {
+    margin-inline: 0.1em;
+  }
+
+  /* Flowing text is spaced by real spaces. */
+  .mushaf-stage[data-flow]
+    .mushaf-page:not([data-printed])
+    :is([data-word], [data-verse-end]) {
+    margin-inline: 0;
   }
 
   .mushaf-word {
