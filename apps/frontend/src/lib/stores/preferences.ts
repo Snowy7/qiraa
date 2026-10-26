@@ -14,13 +14,20 @@ import { useLocation } from "@/lib/stores/location";
 export type ThemePreference = "light" | "dark" | "system";
 export type Language = "en" | "ar";
 export type ReadingMode = "verses" | "mushaf";
+/** Mushaf as one continuous vertical scroll, or page by page (with spreads). */
+export type MushafView = "scroll" | "pages";
 
 export interface Preferences {
   theme: ThemePreference;
   language: Language;
   script: QuranScriptId;
   readingMode: ReadingMode;
-  /** Multiplier on the per-device base size of Quran text (0.8 – 1.6). */
+  mushafView: MushafView;
+  /**
+   * Size of Quran text (0.8 – 1.6): a multiplier on the per-device base size
+   * in the verse view, and on the page width (scroll) or the fitted page
+   * (pages) in the mushaf.
+   */
   quranTextScale: number;
   /** Multiplier on the base size of translation text (0.85 – 1.4). */
   translationTextScale: number;
@@ -41,6 +48,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   language: "en",
   script: DEFAULT_SCRIPT,
   readingMode: "verses",
+  mushafView: "scroll",
   quranTextScale: 1,
   translationTextScale: 1,
   showTranslation: true,
@@ -84,6 +92,8 @@ function sanitize(value: unknown): Partial<Preferences> {
     const candidate = prefs[key];
     if (candidate === undefined) continue;
     if (key === "script" && !isQuranScriptId(candidate)) continue;
+    if (key === "mushafView" && candidate !== "scroll" && candidate !== "pages")
+      continue;
     if (
       key === "tafsirId" &&
       candidate !== null &&

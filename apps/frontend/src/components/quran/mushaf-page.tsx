@@ -30,7 +30,8 @@ interface MushafPageProps {
 /**
  * One page of the printed mushaf. Each line is justified to the script's
  * line width (in em), so lines match the print exactly at any size; the
- * font-size itself comes from `.mushaf-page` in globals.css.
+ * font-size itself comes from `.mushaf-page` in globals.css, inside a
+ * `.mushaf-stage` that sets the script's `--line-em` and `--mushaf-lh`.
  */
 export const MushafPage = memo(function MushafPage({
   script,
@@ -56,12 +57,6 @@ export const MushafPage = memo(function MushafPage({
       lang="ar"
       aria-label={`Page ${page}`}
       className="mushaf-page quran-text mx-auto flex flex-col"
-      style={
-        {
-          "--line-em": script.lineWidthEm,
-          "--mushaf-lh": script.lineHeight * 0.88,
-        } as React.CSSProperties
-      }
     >
       <div ref={linesRef} className="flex flex-1 flex-col justify-center">
         {!ready
@@ -80,14 +75,13 @@ export const MushafPage = memo(function MushafPage({
               return (
                 <Fragment key={lineNumber}>
                   {startsChapter && chapter && (
-                    <div
-                      className="py-[0.35em] font-sans"
-                      style={{ fontSize: "0.8em" }}
-                    >
-                      <SurahFrame chapter={chapter.id} />
-                      {chapter.bismillahPre && (
-                        <Bismillah className="mx-auto mt-[0.6em] h-[1.5em] text-[hsl(var(--quran-ink))]" />
-                      )}
+                    <div className="mushaf-header font-sans">
+                      <div style={{ fontSize: "0.8em" }}>
+                        <SurahFrame chapter={chapter.id} />
+                        {chapter.bismillahPre && (
+                          <Bismillah className="mx-auto mt-[0.45em] h-[1.5em] text-[hsl(var(--quran-ink))]" />
+                        )}
+                      </div>
                     </div>
                   )}
                   <div

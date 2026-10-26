@@ -17,6 +17,7 @@ import {
   type QuranScriptId,
 } from "@qiraa/core";
 import { ReciterPicker } from "@/components/audio/reciter-picker";
+import { Segmented } from "@/components/page";
 import { VerseText } from "@/components/quran/verse-text";
 import { useI18n } from "@/lib/i18n";
 import { queryClient } from "@/lib/query-client";
@@ -158,6 +159,21 @@ export function ReadingOptions() {
 
       <section className="space-y-5">
         <div>
+          <p className="font-semibold">{t("mushafView")}</p>
+          <p className="mb-3 text-sm text-muted-foreground">
+            {t("mushafViewHint")}
+          </p>
+          <Segmented
+            value={prefs.mushafView}
+            onChange={(value) => prefs.set({ mushafView: value })}
+            className="flex"
+            options={[
+              { value: "scroll", label: t("mushafScroll") },
+              { value: "pages", label: t("mushafPages") },
+            ]}
+          />
+        </div>
+        <div>
           <div className="mb-2 flex items-baseline justify-between">
             <h3 className="font-semibold">{t("quranTextSize")}</h3>
             <span className="text-sm tabular-nums text-muted-foreground">
@@ -171,6 +187,9 @@ export function ReadingOptions() {
             value={[prefs.quranTextScale]}
             onValueChange={([value]) => prefs.set({ quranTextScale: value })}
           />
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("mushafTextSizeHint")}
+          </p>
         </div>
         <div>
           <div className="mb-2 flex items-baseline justify-between">

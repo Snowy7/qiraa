@@ -289,25 +289,45 @@
   }
 
   /*
-   * Mushaf pages. Font-size is the largest that fits: the stage width (split
-   * across a two-page spread), the viewport height from tablet up, and the
-   * reader's size preference. Lines are justified to `--line-em` em, the
-   * width of a full printed line in that script.
+   * Mushaf pages. Lines are justified to `--line-em` em, the width of a full
+   * printed line in the script, so only the font-size changes, and a page
+   * is never wider than the stage (split across a two-page spread):
+   *  - scroll view: a reading-width page (42rem) times the text size;
+   *  - pages view: the size that fits the screen (width, and height from
+   *    tablet up) times the text size, so a larger size scrolls the page.
+   * `.mushaf-stage` sets `--line-em`, `--mushaf-lh`, `--spread` and
+   * `--quran-scale`.
    */
   .mushaf-stage {
     container-type: inline-size;
   }
 
-  .mushaf-page {
+  .mushaf-page,
+  .mushaf-slot {
+    /* Side padding of a page in em, both sides together. */
+    --pad-em: 1.6;
     --fit-width: calc(
-      (100cqi - var(--spread-gap, 0px)) / var(--spread, 1) /
-        (var(--line-em) + 1.6)
+      (100cqi - var(--spread-gap, 0px) * (var(--spread, 1) - 1)) /
+        var(--spread, 1) / (var(--line-em) + var(--pad-em))
     );
-    --fit-height: 100vh;
-    --size-cap: calc(var(--quran-scale, 1) * 2.4rem);
-    font-size: min(var(--fit-width), var(--fit-height), var(--size-cap));
     line-height: var(--mushaf-lh);
-    padding: 0.8em 0.8em 0.6em;
+  }
+
+  /* Phones: slimmer margins leave more of the width to the text. */
+  @media (max-width: 639px) {
+    .mushaf-page,
+    .mushaf-slot {
+      --pad-em: 1;
+    }
+  }
+
+  .mushaf-page {
+    --fit-height: 100vh;
+    font-size: min(
+      var(--fit-width),
+      calc(min(var(--fit-width), var(--fit-height)) * var(--quran-scale, 1))
+    );
+    padding: 0.8em calc(var(--pad-em) * 0.5em) 0.6em;
   }
 
   @media (min-width: 768px) {
@@ -316,6 +336,39 @@
         (100dvh - var(--reader-chrome, 8rem)) / (17.2 * var(--mushaf-lh))
       );
     }
+  }
+
+  /*
+   * A page's place in the scroll view. Every slot is as tall as the fullest
+   * page (16 line slots; a surah header takes two), so pages that haven't
+   * rendered yet hold their exact space and the scroll position maps to a
+   * page by arithmetic.
+   */
+  .mushaf-slot {
+    font-size: min(
+      var(--fit-width),
+      calc(
+        42rem * var(--quran-scale, 1) / (var(--line-em) + var(--pad-em))
+      )
+    );
+    width: calc((var(--line-em) + var(--pad-em)) * 1em);
+    height: calc((16 * var(--mushaf-lh) + 3) * 1em);
+    margin-inline: auto;
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+    scroll-margin-top: calc(4rem + env(safe-area-inset-top));
+  }
+
+  .mushaf-slot > .mushaf-page {
+    font-size: inherit;
+    height: 100%;
+  }
+
+  /* A surah header (frame and Bismillah) fills exactly two line slots. */
+  .mushaf-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: calc(2 * var(--mushaf-lh) * 1em);
   }
 
   .mushaf-line {

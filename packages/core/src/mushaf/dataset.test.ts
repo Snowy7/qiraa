@@ -44,6 +44,20 @@ describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
     }
   });
 
+  // The web mushaf gives every page the same height: 16 line slots, with a
+  // surah header (frame and Bismillah) taking two.
+  it("fits every page in 16 line slots", () => {
+    for (const [page, lines] of pages) {
+      const headers = lines.filter(([, [first]]) => {
+        const [key, start] = first ?? [];
+        return key?.endsWith(":1") && start === 1;
+      }).length;
+      expect(lines.length + 2 * headers, `page ${page}`).toBeLessThanOrEqual(
+        16,
+      );
+    }
+  });
+
   it("contains no leftover markup", () => {
     for (const lines of pages.values()) {
       for (const [, segments] of lines) {

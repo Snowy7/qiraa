@@ -88,7 +88,18 @@ export const MESSAGES = {
   readingSettings: { en: "Reading settings", ar: "إعدادات القراءة" },
   quranScript: { en: "Quran script", ar: "خط المصحف" },
   quranTextSize: { en: "Quran text size", ar: "حجم خط القرآن" },
+  mushafTextSizeHint: {
+    en: "Mushaf pages keep their printed lines, so they grow up to the width of the screen.",
+    ar: "تحافظ صفحات المصحف على أسطرها المطبوعة، فتكبر حتى عرض الشاشة.",
+  },
   translationTextSize: { en: "Translation size", ar: "حجم الترجمة" },
+  mushafView: { en: "Mushaf pages", ar: "صفحات المصحف" },
+  mushafViewHint: {
+    en: "Scroll through the whole mushaf, or turn one page at a time",
+    ar: "تمرير المصحف كاملًا، أو تقليب صفحة صفحة",
+  },
+  mushafScroll: { en: "Scroll", ar: "تمرير" },
+  mushafPages: { en: "Pages", ar: "صفحات" },
   translation: { en: "Translation", ar: "الترجمة" },
   showTranslation: { en: "Show translation", ar: "إظهار الترجمة" },
   wordByWord: { en: "Word by word", ar: "كلمة بكلمة" },
