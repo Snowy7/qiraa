@@ -126,7 +126,7 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
       playFrom={() => firstVerse ?? "1:1"}
     >
       <div
-        className="mushaf-stage reader-scope relative mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4 md:pb-6"
+        className="mushaf-stage reader-scope relative mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4 md:px-16 md:pb-6"
         style={
           {
             "--spread": step,
