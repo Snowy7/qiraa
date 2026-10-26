@@ -1,113 +1,104 @@
-/* Fonts are self-hosted via @fontsource (imported in main.tsx) */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* =====================================
-   Noor Quran App - Clean Modern Design
+   Quran fonts (self-hosted, cached by the service worker for offline use).
+   QCF page fonts (p1-v2 ... p604-v1) are registered at runtime by
+   lib/quran/fonts.ts because each mushaf page has its own file.
    ===================================== */
 
-/* quran.com fonts */
 @font-face {
-  font-family: "quran_common";
-  src: url("/fonts/quran/common/quran_common.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+  font-family: "UthmanicHafs";
+  src: url("/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2")
+    format("woff2");
+  font-display: block;
 }
 
 @font-face {
-  font-family: "surah_names";
-  src:
-    url("/fonts/quran/surah-names/v1/sura_names.woff2") format("woff2"),
-    url("/fonts/quran/surah-names/v1/sura_names.woff") format("woff"),
-    url("/fonts/quran/surah-names/v1/sura_names.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+  font-family: "IndoPak";
+  src: url("/fonts/quran/hafs/nastaleeq/indopak/indopak-nastaleeq-waqf-lazim-v4.2.1.woff2")
+    format("woff2");
+  font-display: block;
 }
 
-/*
- * Per-page QCF V2 mushaf fonts (p1-v2 through p604-v2) are loaded
- * dynamically via the FontFace API in mushaf-font-loader.ts.
- */
+@font-face {
+  font-family: "SurahNames";
+  src: url("/fonts/quran/surah-names/v1/sura_names.woff2") format("woff2");
+  font-display: block;
+}
 
 @layer base {
-  /* =====================================
-     Light Theme - Warm Cream & Brown
-     ===================================== */
+  /* Light: warm cream paper with amber ink. */
   :root {
-    --background: 42 83% 98%; /* #FEFBF4 warm cream */
-    --foreground: 17 26% 18%; /* warm dark brown */
+    --background: 40 46% 97%;
+    --foreground: 26 33% 13%;
 
-    --card: 40 45% 96%; /* warm off-white */
-    --card-foreground: 17 26% 18%;
+    --card: 40 60% 99.5%;
+    --card-foreground: 26 33% 13%;
+    --popover: 40 60% 99.5%;
+    --popover-foreground: 26 33% 13%;
 
-    --popover: 40 45% 96%;
-    --popover-foreground: 17 26% 18%;
+    --primary: 28 64% 33%;
+    --primary-foreground: 40 60% 98%;
 
-    /* Primary - Rich Brown */
-    --primary: 17 30% 34%; /* #6B4A3A deep warm brown */
-    --primary-foreground: 0 0% 100%;
+    --secondary: 37 40% 92%;
+    --secondary-foreground: 26 33% 16%;
 
-    /* Secondary - Warm Beige */
-    --secondary: 38 35% 92%; /* soft beige */
-    --secondary-foreground: 17 26% 18%;
+    --muted: 37 34% 92%;
+    --muted-foreground: 28 13% 42%;
 
-    --muted: 38 25% 88%;
-    --muted-foreground: 17 12% 48%;
+    /* Gold used for glows, highlights and the active verse. */
+    --accent: 36 90% 55%;
+    --accent-foreground: 26 40% 12%;
 
-    /* Accent - Warm Tan/Gold */
-    --accent: 26 46% 58%; /* #CC9B76 warm tan */
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 50%;
+    --destructive: 2 70% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 38 25% 88%;
-    --input: 38 25% 88%;
-    --ring: 17 30% 34%;
+    --border: 35 30% 86%;
+    --input: 35 30% 84%;
+    --ring: 28 64% 33%;
 
     --radius: 1rem;
 
-    --card-content: 38 50% 92%;
+    /* Ink for Quran text: a touch warmer than body text. */
+    --quran-ink: 24 38% 11%;
+    --verse-highlight: 38 92% 55% / 0.14;
+    --reciting-word: 20 88% 46%;
   }
 
-  /* =====================================
-     Dark Theme - Warm Dark Brown
-     ===================================== */
+  /* Dark: near-black, quiet surfaces, amber accent. */
   .dark {
-    --background: 25 18% 9%; /* warm dark brown */
-    --foreground: 38 30% 90%; /* warm off-white */
+    --background: 30 8% 5%;
+    --foreground: 36 22% 92%;
 
-    --card: 25 14% 12%;
-    --card-foreground: 38 30% 90%;
+    --card: 30 6% 8.5%;
+    --card-foreground: 36 22% 92%;
+    --popover: 30 6% 10%;
+    --popover-foreground: 36 22% 92%;
 
-    --popover: 25 14% 12%;
-    --popover-foreground: 38 30% 90%;
+    --primary: 35 84% 62%;
+    --primary-foreground: 26 40% 8%;
 
-    /* Primary - Warm tan for dark mode contrast */
-    --primary: 26 46% 60%; /* lighter warm tan */
-    --primary-foreground: 25 18% 9%;
+    --secondary: 30 6% 13%;
+    --secondary-foreground: 36 22% 92%;
 
-    --secondary: 25 12% 16%;
-    --secondary-foreground: 38 30% 90%;
+    --muted: 30 6% 13%;
+    --muted-foreground: 32 9% 60%;
 
-    --muted: 25 10% 20%;
-    --muted-foreground: 35 15% 55%;
+    --accent: 36 90% 58%;
+    --accent-foreground: 26 40% 8%;
 
-    --accent: 17 26% 48%;
-    --accent-foreground: 38 30% 90%;
+    --destructive: 2 72% 58%;
+    --destructive-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 38 30% 90%;
+    --border: 30 6% 16%;
+    --input: 30 6% 20%;
+    --ring: 35 84% 62%;
 
-    --border: 25 10% 20%;
-    --input: 25 10% 20%;
-    --ring: 26 46% 60%;
-
-    --card-content: 30 20% 15%;
+    --quran-ink: 38 30% 93%;
+    --verse-highlight: 38 92% 58% / 0.12;
+    --reciting-word: 40 96% 64%;
   }
 
   * {
@@ -115,381 +106,337 @@
   }
 
   html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family:
-      "Inter",
+      "Figtree Variable",
+      "Almarai",
       system-ui,
       -apple-system,
+      "Segoe UI",
       sans-serif;
+    font-feature-settings: "ss01";
   }
 
-  .font-arabic-ui {
-    font-family: "Almarai", "Scheherazade New", sans-serif;
+  /* Arabic UI reads better slightly larger and with Almarai first. */
+  html[lang="ar"] body {
+    font-family: "Almarai", "Figtree Variable", system-ui, sans-serif;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
-/* =====================================
-   Arabic Typography
-   ===================================== */
-
 @layer components {
-  .quran-reader-flow {
-    direction: rtl;
-    text-align: right;
+  /* Horizontal page padding that grows with the viewport. */
+  .page-x {
+    @apply px-5 sm:px-6 lg:px-10;
   }
 
-  .quran-reader-flow [dir="ltr"] {
-    text-align: left;
+  /* Card surface used across the app. */
+  .surface {
+    @apply rounded-3xl border border-border/70 bg-card shadow-[0_1px_2px_hsl(26_40%_20%/0.04),0_12px_32px_-18px_hsl(26_40%_20%/0.18)];
   }
 
-  .arabic-text {
-    font-family: "Scheherazade New", "quran_common", serif;
-    direction: rtl;
-    text-align: right;
-    line-height: 2.2;
+  .dark .surface {
+    @apply shadow-none;
   }
 
-  .arabic-uthmani {
-    font-family: "Scheherazade New", "quran_common", serif;
-  }
-
-  .arabic-scheherazade {
-    font-family: "Scheherazade New", "quran_common", serif;
-  }
-
-  .mushaf-text {
-    font-family: "quran_common", serif;
-    direction: rtl;
-    text-align: right;
-    line-height: 2;
-  }
-
-  .mushaf-view {
+  /* Warm amber glow behind hero cards (the "og" look). */
+  .hero-glow {
     background:
       radial-gradient(
-        140% 85% at 50% -10%,
-        hsl(var(--primary) / 0.08),
+        120% 90% at 50% 0%,
+        hsl(36 95% 62% / 0.55),
+        transparent 62%
+      ),
+      radial-gradient(
+        80% 60% at 100% 100%,
+        hsl(20 85% 58% / 0.18),
+        transparent 70%
+      ),
+      hsl(var(--card));
+  }
+
+  .dark .hero-glow {
+    background:
+      radial-gradient(
+        110% 80% at 50% -10%,
+        hsl(36 90% 50% / 0.28),
         transparent 60%
       ),
-      linear-gradient(
-        180deg,
-        hsl(var(--background)) 0%,
-        hsl(var(--background) / 0.96) 100%
-      );
+      hsl(var(--card));
   }
 
-  .mushaf-page-lines {
-    min-height: 0;
-  }
-
-  .mushaf-line {
-    overflow: visible;
+  /* Quran text: never synthesize bold, keep glyph metrics intact. */
+  .quran-text {
+    color: hsl(var(--quran-ink));
+    font-synthesis: none;
+    font-weight: normal;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
+    font-kerning: normal;
   }
 
-  .mushaf-word {
-    line-height: inherit;
-    padding-inline: 0.01em;
-    overflow: visible;
+  .surah-name {
+    font-family: "SurahNames", serif;
+    font-weight: normal;
+    line-height: 1;
   }
 
-  .ayah-number {
-    @apply inline-flex items-center justify-center;
-    @apply text-xs font-medium text-muted-foreground;
-    @apply min-w-[1.5rem] h-6;
-    font-family: "Inter", sans-serif;
-    direction: ltr;
+  /* Tajweed rule colours: the palette used by quran.com and tanzil.net. */
+  .tj-ham_wasl,
+  .tj-slnt,
+  .tj-laam_shamsiyah,
+  .tj-idgham_mutajanisayn,
+  .tj-idgham_mutaqaribayn {
+    color: #a1a1a1;
   }
-}
-
-/* =====================================
-   Layout Utilities
-   ===================================== */
-
-@layer utilities {
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top, 0);
+  .tj-madda_normal {
+    color: #537fff;
   }
-
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0);
+  .tj-madda_permissible {
+    color: #4050ff;
   }
-
-  .pb-nav {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0));
+  .tj-madda_necessary {
+    color: #000ebc;
   }
-
-  .pb-audio {
-    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0));
+  .tj-madda_obligatory_mottasel,
+  .tj-madda_obligatory_monfasel {
+    color: #2144c1;
   }
-
-  .pb-nav-audio {
-    padding-bottom: calc(11rem + env(safe-area-inset-bottom, 0));
+  .tj-qalaqah {
+    color: #dd0008;
   }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .tj-ikhafa_shafawi {
+    color: #d500b7;
   }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  .tj-ikhafa {
+    color: #9400a8;
   }
-}
-
-/* =====================================
-   Component Styles
-   ===================================== */
-
-@layer components {
-  .page-container {
-    @apply min-h-screen bg-background pb-nav;
+  .tj-idgham_shafawi {
+    color: #58b800;
+  }
+  .tj-iqlab {
+    color: #26bffd;
+  }
+  .tj-idgham_ghunnah {
+    color: #169777;
+  }
+  .tj-idgham_wo_ghunnah {
+    color: #169200;
+  }
+  .tj-ghunnah {
+    color: #ff7e1e;
   }
 
-  @media (min-width: 1024px) {
-    .page-container {
-      @apply pb-6;
+  /* Same hues, lifted for contrast on the dark background. */
+  .dark .tj-ham_wasl,
+  .dark .tj-slnt,
+  .dark .tj-laam_shamsiyah,
+  .dark .tj-idgham_mutajanisayn,
+  .dark .tj-idgham_mutaqaribayn {
+    color: #8a8a8a;
+  }
+  .dark .tj-madda_normal {
+    color: #8aa8ff;
+  }
+  .dark .tj-madda_permissible {
+    color: #7d89ff;
+  }
+  .dark .tj-madda_necessary {
+    color: #6f7bff;
+  }
+  .dark .tj-madda_obligatory_mottasel,
+  .dark .tj-madda_obligatory_monfasel {
+    color: #6f8fff;
+  }
+  .dark .tj-qalaqah {
+    color: #ff5a5f;
+  }
+  .dark .tj-ikhafa_shafawi {
+    color: #f25ddc;
+  }
+  .dark .tj-ikhafa {
+    color: #d06fe6;
+  }
+  .dark .tj-idgham_shafawi {
+    color: #84dd3a;
+  }
+  .dark .tj-iqlab {
+    color: #5fd2ff;
+  }
+  .dark .tj-idgham_ghunnah {
+    color: #3cc9a4;
+  }
+  .dark .tj-idgham_wo_ghunnah {
+    color: #4fd13a;
+  }
+  .dark .tj-ghunnah {
+    color: #ff9a4f;
+  }
+
+  /*
+   * Mushaf pages. Font-size is the largest that fits: the stage width (split
+   * across a two-page spread), the viewport height from tablet up, and the
+   * reader's size preference. Lines are justified to `--line-em` em, the
+   * width of a full printed line in that script.
+   */
+  .mushaf-stage {
+    container-type: inline-size;
+  }
+
+  .mushaf-page {
+    --fit-width: calc(
+      (100cqi - var(--spread-gap, 0px)) / var(--spread, 1) /
+        (var(--line-em) + 1.6)
+    );
+    --fit-height: 100vh;
+    --size-cap: calc(var(--quran-scale, 1) * 2.4rem);
+    font-size: min(var(--fit-width), var(--fit-height), var(--size-cap));
+    line-height: var(--mushaf-lh);
+    padding: 0.8em 0.8em 0.6em;
+  }
+
+  @media (min-width: 768px) {
+    .mushaf-page {
+      --fit-height: calc(
+        (100dvh - var(--reader-chrome, 8rem)) / (17.2 * var(--mushaf-lh))
+      );
     }
   }
 
-  .ayah-highlight {
-    @apply bg-primary/5;
+  .mushaf-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    width: calc(var(--line-em) * 1em);
+    margin-inline: auto;
+    white-space: nowrap;
   }
 
-  /* Glass card effect */
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-border/50;
+  .mushaf-line[data-centered] {
+    justify-content: center;
+    column-gap: 0.2em;
+  }
+
+  .mushaf-word {
+    border-radius: 0.25em;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+
+  [data-word] {
+    cursor: pointer;
+    border-radius: 0.2em;
+  }
+
+  .mushaf-word.is-active {
+    color: hsl(var(--primary));
+  }
+
+  /* Only real pointers hover; on touch screens :hover sticks after a tap. */
+  @media (hover: hover) {
+    [data-word]:hover {
+      color: hsl(var(--primary));
+    }
+  }
+
+  /* The word being recited, toggled from the audio engine (no re-render). */
+  .is-reciting-word {
+    color: hsl(var(--reciting-word));
+    transition: color 0.12s;
+  }
+
+  /* Translation HTML from the API: footnote markers. */
+  .translation-text sup {
+    @apply ms-0.5 text-[0.65em] font-semibold text-primary;
+  }
+
+  .prose-tafsir h1,
+  .prose-tafsir h2,
+  .prose-tafsir h3 {
+    @apply mb-2 mt-6 text-base font-semibold text-foreground first:mt-0;
+  }
+
+  .prose-tafsir p {
+    @apply my-3;
   }
 }
 
-/* =====================================
-   Animations
-   ===================================== */
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
 
-@keyframes fade-in {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Loading indicators that only appear if loading is actually slow. */
+  .delayed-fade {
+    animation: delayed-fade 0.4s 0.35s both;
+  }
+
+  /* Skip rendering off-screen verses until they approach the viewport. */
+  .defer-render {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 220px;
+  }
+}
+
+@keyframes delayed-fade {
   from {
     opacity: 0;
   }
-  to {
-    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-@keyframes fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+/* Reader text sizes: a per-device base times the user's scale preference. */
+.reader-scope {
+  --quran-base: 1.75rem;
+  --translation-base: 1.0625rem;
+  --quran-size: calc(var(--quran-base) * var(--quran-scale, 1));
+  --translation-size: calc(
+    var(--translation-base) * var(--translation-scale, 1)
+  );
 }
 
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (min-width: 768px) {
+  .reader-scope {
+    --quran-base: 2.05rem;
+    --translation-base: 1.125rem;
   }
 }
 
-@keyframes slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pop-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes dropdown-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -4px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0) scale(1);
-  }
-}
-
-@keyframes bounce-subtle {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes pulse-subtle {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-fade-out {
-  animation: fade-out 0.2s ease-out;
-}
-
-@keyframes sheet-slide-up {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.4s ease-out;
-}
-
-.animate-slide-down {
-  animation: slide-down 0.3s ease-out;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.3s ease-out;
-}
-
-.animate-pop-in {
-  animation: pop-in 0.15s ease-out;
-}
-
-.animate-dropdown-in {
-  animation: dropdown-in 0.18s ease-out forwards;
-}
-
-.animate-bounce-subtle {
-  animation: bounce-subtle 0.5s ease-in-out;
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s ease-in-out infinite;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-/* Smooth transitions */
-.transition-smooth {
-  @apply transition-all duration-300 ease-out;
-}
-
-.press-effect {
-  @apply transition-transform duration-150 active:scale-[0.97];
-}
-
-.hover-lift {
-  @apply transition-all duration-200;
-}
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-/* =====================================
-   Tafsir Content
-   ===================================== */
-
-.tafsir-content h1,
-.tafsir-content h2,
-.tafsir-content h3 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-top: 0.75rem;
-  margin-bottom: 0.25rem;
-}
-
-.tafsir-content h1:first-child,
-.tafsir-content h2:first-child,
-.tafsir-content h3:first-child {
-  margin-top: 0;
-}
-
-.tafsir-content p {
-  margin: 0.375rem 0;
-}
-
-.tafsir-content[dir="rtl"] {
-  font-family: "Almarai", "Scheherazade New", sans-serif;
-  line-height: 1.9;
-}
-
-/* =====================================
-   Print Styles
-   ===================================== */
-
-@media print {
-  .bottom-nav,
-  .audio-player-bar,
-  .no-print {
-    display: none !important;
-  }
-
-  .arabic-text {
-    font-size: 20pt;
-    line-height: 2.5;
+@media (min-width: 1280px) {
+  .reader-scope {
+    --quran-base: 2.25rem;
   }
 }

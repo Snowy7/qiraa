@@ -1,57 +1,54 @@
 import { Check } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@template/ui";
-import { useAudioStore, RECITERS } from "@/lib/stores/audio-store";
-import { useTranslation } from "@/lib/i18n";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@template/ui";
+import { RECITERS } from "@qiraa/core";
+import { useI18n } from "@/lib/i18n";
+import { usePreferences } from "@/lib/stores/preferences";
 import { cn } from "@/lib/utils";
 
-interface ReciterPickerProps {
+/** Reciter list; picking one switches playback immediately. */
+export function ReciterPicker({
+  open,
+  onOpenChange,
+}: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-export function ReciterPicker({ open, onOpenChange }: ReciterPickerProps) {
-  const { t } = useTranslation();
-  const { reciterId, setReciter } = useAudioStore();
+}) {
+  const { t, locale } = useI18n();
+  const reciterId = usePreferences((s) => s.reciterId);
+  const set = usePreferences((s) => s.set);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[340px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-base">{t("chooseReciter")}</DialogTitle>
-          <DialogDescription className="text-xs">
-            {t("selectAReciter")}
-          </DialogDescription>
+          <DialogTitle>{t("chooseReciter")}</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-0.5 max-h-[320px] overflow-y-auto -mx-1 px-1">
+        <div className="-mx-2 flex max-h-[60dvh] flex-col overflow-y-auto">
           {RECITERS.map((reciter) => {
-            const isSelected = reciter.id === reciterId;
+            const selected = reciter.id === reciterId;
             return (
               <button
                 key={reciter.id}
                 onClick={() => {
-                  setReciter(reciter.id, reciter.subfolder);
+                  set({ reciterId: reciter.id });
                   onOpenChange(false);
                 }}
                 className={cn(
-                  "flex items-center gap-3 w-full px-3 py-3 rounded-lg text-left transition-all",
-                  isSelected
-                    ? "bg-primary/10 ring-1 ring-primary/20"
-                    : "hover:bg-secondary/80",
+                  "flex items-center gap-3 rounded-2xl px-3 py-3 text-start transition-colors hover:bg-secondary",
+                  selected && "bg-secondary",
                 )}
               >
-                <span className="flex-1 text-sm font-medium truncate">
-                  {reciter.name}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">
+                    {reciter.name[locale]}
+                  </span>
+                  {reciter.style && (
+                    <span className="text-sm text-muted-foreground">
+                      {reciter.style[locale]}
+                    </span>
+                  )}
                 </span>
-                {isSelected && (
-                  <Check className="h-4 w-4 text-primary shrink-0" />
-                )}
+                {selected && <Check className="size-5 text-primary" />}
               </button>
             );
           })}

@@ -1,202 +1,241 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search as SearchIcon, X, ArrowRight, Clock } from "lucide-react";
-import { Input, Skeleton } from "@template/ui";
+import { useDeferredValue, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import DOMPurify from "dompurify";
-import { useSearchVerses } from "@/lib/api/search";
-import { cn } from "@/lib/utils";
-import { useTranslation } from "@/lib/i18n";
+import { ArrowRight, Clock, Search, X } from "lucide-react";
+import { Button } from "@template/ui";
+import { getChapter, parseVerseKey, searchChapters } from "@qiraa/core";
+import { Page, SectionTitle } from "@/components/page";
+import { SurahName } from "@/components/quran/ornaments";
+import { ChapterNumber } from "@/components/reader/surah-navigator";
+import { useQuranSearch } from "@/lib/api/queries";
+import { useOnline } from "@/lib/hooks/use-online";
+import { useI18n } from "@/lib/i18n";
+
+const RECENT_KEY = "qiraa-recent-searches";
+
+/** Accepts Latin or Arabic-Indic digits and common separators: 2:255, ٢:٢٥٥, 2.255. */
+function toVerseKey(query: string): string | null {
+  const latin = query
+    .trim()
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  const match = /^(\d{1,3})\s*[:.\s]\s*(\d{1,3})$/.exec(latin);
+  if (!match) return null;
+  const key = `${Number(match[1])}:${Number(match[2])}`;
+  return parseVerseKey(key) ? key : null;
+}
 
 export default function SearchPage() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { t, locale } = useI18n();
+  const online = useOnline();
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const deferred = useDeferredValue(query.trim());
+  const [recent, setRecent] = useState<string[]>(() =>
+    JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]"),
+  );
+  const [debounced, setDebounced] = useState("");
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("noor-recent-searches");
-      if (saved) setRecentSearches(JSON.parse(saved));
-    } catch {}
-    inputRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 400);
+    const timer = setTimeout(() => setDebounced(deferred), 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [deferred]);
 
-  const {
-    data: searchResults,
-    isLoading,
-    isError,
-  } = useSearchVerses(debouncedQuery);
+  const verseKey = toVerseKey(deferred);
+  const verseRef = verseKey ? parseVerseKey(verseKey) : null;
+  const chapters =
+    deferred && !verseKey ? searchChapters(deferred).slice(0, 6) : [];
+  const results = useQuranSearch(verseKey ? "" : debounced);
 
-  const saveRecentSearch = (q: string) => {
-    const updated = [q, ...recentSearches.filter((s) => s !== q)].slice(0, 8);
-    setRecentSearches(updated);
-    localStorage.setItem("noor-recent-searches", JSON.stringify(updated));
-  };
-
-  const navigateToVerse = (verseKey: string) => {
-    if (query.trim()) saveRecentSearch(query.trim());
-    const [chapterId, verseNumber] = verseKey.split(":");
-    navigate(`/quran/${chapterId}?verse=${verseNumber}`);
-  };
-
-  const clearRecent = () => {
-    setRecentSearches([]);
-    localStorage.removeItem("noor-recent-searches");
+  const remember = () => {
+    if (!deferred) return;
+    const next = [deferred, ...recent.filter((r) => r !== deferred)].slice(
+      0,
+      8,
+    );
+    setRecent(next);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
   };
 
   return (
-    <div className="min-h-screen animate-fade-in">
-      {/* Search Header */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl safe-area-top px-6 pb-3 pt-5">
-        <div className="relative">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            ref={inputRef}
-            placeholder={t("searchPlaceholder")}
+    <Page width="narrow" className="pb-10">
+      <div className="sticky top-0 z-20 -mx-5 bg-background/85 px-5 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl sm:-mx-6 sm:px-6 md:static md:mx-0 md:bg-transparent md:px-0 md:pt-10 md:backdrop-blur-none">
+        <h1 className="mb-4 hidden text-[2rem] font-bold tracking-tight md:block">
+          {t("search")}
+        </h1>
+        <label className="relative block">
+          <Search className="pointer-events-none absolute start-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-11 pr-10 h-12 bg-secondary/50 border-0 rounded-2xl text-sm placeholder:text-muted-foreground/60"
+            placeholder={t("searchPlaceholder")}
+            className="h-14 w-full rounded-full border border-input bg-card pe-12 ps-12 text-base outline-none transition-shadow focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
           />
           {query && (
             <button
-              onClick={() => {
-                setQuery("");
-                inputRef.current?.focus();
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+              onClick={() => setQuery("")}
+              aria-label={t("clear")}
+              className="absolute end-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"
             >
-              <X className="h-4 w-4" />
+              <X className="size-4" />
             </button>
           )}
-        </div>
+        </label>
       </div>
 
-      <div className="px-6 pb-8">
-        {/* Recent searches */}
-        {!debouncedQuery && recentSearches.length > 0 && (
-          <div className="pt-3">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {t("recent")}
-              </p>
-              <button
-                onClick={clearRecent}
-                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+      {!deferred && (
+        <div className="mt-4">
+          {recent.length > 0 ? (
+            <>
+              <SectionTitle
+                action={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setRecent([]);
+                      localStorage.removeItem(RECENT_KEY);
+                    }}
+                  >
+                    {t("clear")}
+                  </Button>
+                }
               >
-                {t("clearAll")}
-              </button>
-            </div>
-            <div className="space-y-0.5">
-              {recentSearches.map((term) => (
-                <button
-                  key={term}
-                  onClick={() => setQuery(term)}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl hover:bg-secondary/60 transition-colors text-left"
-                >
-                  <Clock className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                  <span className="text-sm text-foreground truncate">
-                    {term}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty prompt */}
-        {!debouncedQuery && recentSearches.length === 0 && (
-          <div className="pt-20 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-secondary/60 mx-auto mb-4">
-              <SearchIcon className="h-7 w-7 text-muted-foreground/40" />
-            </div>
-            <p className="text-base font-semibold text-foreground mb-1">
-              {t("searchTheQuran")}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t("searchForVerses")}
-            </p>
-          </div>
-        )}
-
-        {/* Loading */}
-        {isLoading && debouncedQuery && (
-          <div className="space-y-5 pt-5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-16 rounded-lg" />
-                <Skeleton className="h-5 w-full rounded-lg" />
-                <Skeleton className="h-4 w-3/4 rounded-lg" />
+                {t("recent")}
+              </SectionTitle>
+              <div className="flex flex-wrap gap-2">
+                {recent.map((term) => (
+                  <button
+                    key={term}
+                    onClick={() => setQuery(term)}
+                    className="flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-medium hover:bg-secondary/70"
+                  >
+                    <Clock className="size-3.5 text-muted-foreground" /> {term}
+                  </button>
+                ))}
               </div>
+            </>
+          ) : (
+            <p className="mx-auto mt-16 max-w-sm text-center text-muted-foreground">
+              {t("searchHint")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {verseKey && verseRef && (
+        <Link
+          to={`/quran/${verseRef.chapter}?verse=${verseRef.verse}`}
+          onClick={remember}
+          className="surface mt-4 flex items-center gap-4 p-5 transition-colors hover:bg-secondary/50"
+        >
+          <SurahName
+            chapter={verseRef.chapter}
+            className="text-4xl text-primary"
+          />
+          <span className="flex-1">
+            <span className="block text-lg font-bold">
+              {t("goToVerse", { key: verseKey })}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {getChapter(verseRef.chapter)?.nameSimple}
+            </span>
+          </span>
+          <ArrowRight className="size-5 text-muted-foreground rtl:rotate-180" />
+        </Link>
+      )}
+
+      {chapters.length > 0 && (
+        <section className="mt-6">
+          <SectionTitle>{t("surahs")}</SectionTitle>
+          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+            {chapters.map((chapter) => (
+              <Link
+                key={chapter.id}
+                to={`/quran/${chapter.id}`}
+                onClick={remember}
+                className="flex items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-secondary"
+              >
+                <ChapterNumber id={chapter.id} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">
+                    {locale === "ar" ? chapter.nameArabic : chapter.nameSimple}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {chapter.translatedName[locale]}
+                  </span>
+                </span>
+              </Link>
             ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Error */}
-        {isError && debouncedQuery && (
-          <div className="pt-16 text-center text-sm text-muted-foreground">
-            {t("somethingWentWrong")}
-          </div>
-        )}
-
-        {/* Results */}
-        {searchResults && debouncedQuery && (
-          <div className="pt-3">
-            <p className="text-xs font-medium text-muted-foreground mb-4">
-              {searchResults.total_results} result
-              {searchResults.total_results !== 1 ? "s" : ""}
-            </p>
-
-            {searchResults.results.length === 0 && (
-              <div className="pt-10 text-center text-sm text-muted-foreground">
-                {t("noResults")} &ldquo;{debouncedQuery}&rdquo;
-              </div>
+      {debounced.length >= 2 && !verseKey && (
+        <section className="mt-6">
+          <SectionTitle>
+            {t("verses")}
+            {results.data && (
+              <span className="ms-2 text-sm font-medium text-muted-foreground">
+                {t("resultCount", { n: results.data.total })}
+              </span>
             )}
-
-            <div className="space-y-1">
-              {searchResults.results.map((result) => (
-                <button
-                  key={result.verse_id}
-                  onClick={() => navigateToVerse(result.verse_key)}
-                  className="flex items-start gap-3 w-full px-4 py-4 rounded-2xl hover:bg-secondary/50 transition-colors text-left group"
-                >
-                  <div className="flex items-center justify-center h-8 min-w-[32px] rounded-xl bg-primary/8 text-primary text-[11px] font-bold mt-0.5 shrink-0">
-                    {result.verse_key}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-base leading-[2] text-foreground line-clamp-2"
-                      dir="rtl"
-                      style={{
-                        fontFamily: "'Scheherazade New', 'quran_common', serif",
-                      }}
-                    >
-                      {result.text}
-                    </p>
-                    {result.translations?.[0]?.text && (
-                      <p
-                        className="text-xs text-muted-foreground leading-relaxed mt-1.5 line-clamp-2"
-                        dangerouslySetInnerHTML={{
-                          __html: DOMPurify.sanitize(
-                            result.translations[0].text,
-                          ),
-                        }}
-                      />
-                    )}
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary mt-2 shrink-0 transition-colors" />
-                </button>
+          </SectionTitle>
+          {!online && !results.data && (
+            <p className="rounded-2xl bg-secondary px-4 py-3 text-sm text-muted-foreground">
+              {t("searchOffline")}
+            </p>
+          )}
+          {results.isPending && online && (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 animate-pulse rounded-3xl bg-foreground/[0.05]"
+                />
               ))}
             </div>
+          )}
+          {results.data?.results.length === 0 && (
+            <p className="py-8 text-center text-muted-foreground">
+              {t("noResults", { query: debounced })}
+            </p>
+          )}
+          <div className="space-y-2">
+            {results.data?.results.map((result) => {
+              const ref = parseVerseKey(result.verseKey);
+              if (!ref) return null;
+              return (
+                <Link
+                  key={result.verseKey}
+                  to={`/quran/${ref.chapter}?verse=${ref.verse}`}
+                  onClick={remember}
+                  className="surface block p-5 transition-colors hover:bg-secondary/40"
+                >
+                  <span className="text-xs font-bold text-primary">
+                    {getChapter(ref.chapter)?.nameSimple} · {result.verseKey}
+                  </span>
+                  <p
+                    dir="rtl"
+                    lang="ar"
+                    className="quran-text mt-2 line-clamp-2 font-[UthmanicHafs] text-xl leading-loose"
+                  >
+                    {result.text}
+                  </p>
+                  {result.translationHtml && (
+                    <p
+                      dir="auto"
+                      className="mt-1 line-clamp-2 text-sm text-muted-foreground [&_em]:font-semibold [&_em]:not-italic [&_em]:text-foreground"
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(result.translationHtml),
+                      }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
-        )}
-      </div>
-    </div>
+        </section>
+      )}
+    </Page>
   );
 }

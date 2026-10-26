@@ -1,217 +1,324 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
 import {
-  Play,
+  ChevronRight,
+  Loader2,
   Pause,
+  Play,
+  Repeat,
+  Repeat1,
   SkipBack,
   SkipForward,
   X,
-  Repeat,
-  Repeat1,
-  Loader2,
 } from "lucide-react";
-import { Button } from "@template/ui";
-import { useAudioStore, RECITERS } from "@/lib/stores/audio-store";
-import { ReciterPicker } from "./reciter-picker";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Slider,
+} from "@template/ui";
+import { getChapter, getReciter, parseVerseKey } from "@qiraa/core";
+import { SurahName } from "@/components/quran/ornaments";
+import { useI18n } from "@/lib/i18n";
+import {
+  seekTo,
+  useAudio,
+  useAudioTime,
+  type RepeatMode,
+} from "@/lib/stores/audio";
+import { usePreferences } from "@/lib/stores/preferences";
 import { cn } from "@/lib/utils";
+import { DownloadRecitation } from "./download-recitation";
+import { ReciterPicker } from "./reciter-picker";
 
-function formatTime(seconds: number): string {
-  if (!seconds || !isFinite(seconds)) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
+const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = {
+  off: "verse",
+  verse: "surah",
+  surah: "off",
+};
+
+const clock = (s: number) =>
+  `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+/** Thin progress line along the bottom of the mini player. */
+function ProgressLine() {
+  const { current, duration } = useAudioTime();
+  return (
+    <div className="absolute inset-x-0 bottom-0 h-[3px] bg-border/60">
+      <div
+        className="h-full bg-primary transition-[width] duration-300 ease-linear"
+        style={{ width: `${duration ? (current / duration) * 100 : 0}%` }}
+      />
+    </div>
+  );
 }
 
-export function AudioPlayer() {
-  const {
-    isPlaying,
-    isLoading,
-    isVisible,
-    currentVerseKey,
-    currentTime,
-    duration,
-    repeatMode,
-    playbackSpeed,
-    reciterId,
-    pause,
-    resume,
-    stop,
-    next,
-    previous,
-    seekTo,
-    setRepeatMode,
-    setSpeed,
-  } = useAudioStore();
-
-  const location = useLocation();
-  const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
-
-  if (!isVisible || !currentVerseKey) return null;
-
-  const hideNavPaths = ["/quran/", "/hifz/drill"];
-  const isNavHidden = hideNavPaths.some(
-    (p) => location.pathname.startsWith(p) && location.pathname !== "/quran",
+function PlayPauseIcon() {
+  const status = useAudio((s) => s.status);
+  if (status === "loading") return <Loader2 className="animate-spin" />;
+  return status === "playing" ? (
+    <Pause className="fill-current" />
+  ) : (
+    <Play className="translate-x-px fill-current" />
   );
+}
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const reciterName =
-    RECITERS.find((r) => r.id === reciterId)?.name ?? "Unknown";
+/** Compact player docked at the bottom while a recitation is loaded. */
+export function AudioPlayer({ aboveTabBar }: { aboveTabBar: boolean }) {
+  const { t, locale } = useI18n();
+  const verseKey = useAudio((s) => s.verseKey);
+  const status = useAudio((s) => s.status);
+  const finishedAyah = useAudio((s) => s.finishedAyah);
+  const { toggle, next, previous, stop, continueReciting } =
+    useAudio.getState();
+  const reciterId = usePreferences((s) => s.reciterId);
+  const [expanded, setExpanded] = useState(false);
 
-  const cycleRepeat = () => {
-    const modes: ("off" | "verse" | "surah")[] = ["off", "verse", "surah"];
-    const idx = modes.indexOf(repeatMode);
-    setRepeatMode(modes[(idx + 1) % modes.length]);
-  };
-
-  const cycleSpeed = () => {
-    const speeds = [0.75, 1, 1.25, 1.5, 2];
-    const idx = speeds.indexOf(playbackSpeed);
-    setSpeed(speeds[(idx + 1) % speeds.length]);
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const pct = x / rect.width;
-    seekTo(pct * duration);
-  };
+  if (!verseKey) return null;
+  const ref = parseVerseKey(verseKey);
+  const chapter = ref ? getChapter(ref.chapter) : undefined;
 
   return (
     <>
       <div
         className={cn(
-          "fixed left-0 right-0 z-50 safe-area-bottom",
-          isNavHidden ? "bottom-0" : "bottom-[76px] lg:bottom-0",
+          "fixed inset-x-3 z-40 md:inset-x-auto md:end-6 md:start-[calc(88px+1.5rem)]",
+          aboveTabBar
+            ? "bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] md:bottom-6 xl:start-[calc(16rem+1.5rem)]"
+            : "bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-6",
         )}
       >
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-elevated overflow-hidden">
-            {/* Progress bar */}
-            <div
-              className="h-1 bg-border/30 cursor-pointer group"
-              onClick={handleSeek}
-            >
-              <div
-                className="h-full bg-primary rounded-full transition-[width] duration-200"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+        <div className="relative mx-auto flex max-w-xl items-center gap-1 overflow-hidden rounded-[22px] border border-border/70 bg-card/95 p-2 pe-2.5 shadow-float backdrop-blur-xl">
+          <button
+            onClick={() => setExpanded(true)}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl text-start"
+            aria-label={t("nowPlaying")}
+          >
+            {chapter && (
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-secondary text-primary">
+                <SurahName chapter={chapter.id} className="text-[1.3rem]" />
+              </span>
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold leading-tight">
+                {chapter &&
+                  (locale === "ar" ? chapter.nameArabic : chapter.nameSimple)}
+                <span className="font-medium text-muted-foreground">
+                  {" "}
+                  · {verseKey}
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
+                {status === "error"
+                  ? t("audioFailed")
+                  : getReciter(reciterId).name[locale]}
+              </span>
+            </span>
+          </button>
 
-            <div className="px-4 py-3">
-              {/* Top row */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-foreground tabular-nums shrink-0">
-                    {currentVerseKey}
-                  </span>
-                  <button
-                    onClick={() => setReciterPickerOpen(true)}
-                    className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors truncate"
-                  >
-                    {reciterName}
-                  </button>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground tabular-nums shrink-0 ml-2">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>/</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center justify-between">
-                {/* Left */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-8 w-8 rounded-xl",
-                      repeatMode !== "off"
-                        ? "text-primary"
-                        : "text-muted-foreground",
-                    )}
-                    onClick={cycleRepeat}
-                  >
-                    {repeatMode === "verse" ? (
-                      <Repeat1 className="h-3.5 w-3.5" />
-                    ) : (
-                      <Repeat className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-
-                  <button
-                    onClick={cycleSpeed}
-                    className={cn(
-                      "h-8 min-w-[32px] px-2 rounded-xl text-[10px] font-bold transition-colors",
-                      playbackSpeed !== 1
-                        ? "text-primary bg-primary/8"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {playbackSpeed}x
-                  </button>
-                </div>
-
-                {/* Center */}
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl text-foreground"
-                    onClick={previous}
-                  >
-                    <SkipBack className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-11 w-11 rounded-2xl"
-                    onClick={isPlaying ? pause : resume}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : isPlaying ? (
-                      <Pause className="h-5 w-5" />
-                    ) : (
-                      <Play className="h-5 w-5 ml-0.5" />
-                    )}
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl text-foreground"
-                    onClick={next}
-                  >
-                    <SkipForward className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Right */}
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-xl text-muted-foreground"
-                    onClick={stop}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+          {/* Media controls keep their physical order in every language. */}
+          <div dir="ltr" className="flex items-center">
+            {finishedAyah ? (
+              <Button size="sm" onClick={continueReciting} className="me-1">
+                {t("continueReciting")} <SkipForward className="fill-current" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={previous}
+                  aria-label={t("previous")}
+                  className="hidden md:inline-flex"
+                >
+                  <SkipBack className="fill-current" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggle}
+                  aria-label={status === "playing" ? t("pause") : t("play")}
+                >
+                  <PlayPauseIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={next}
+                  aria-label={t("next")}
+                >
+                  <SkipForward className="fill-current" />
+                </Button>
+              </>
+            )}
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={stop}
+            aria-label={t("stopAudio")}
+            className="hidden text-muted-foreground md:inline-flex"
+          >
+            <X />
+          </Button>
+          <ProgressLine />
         </div>
       </div>
+      <NowPlaying open={expanded} onOpenChange={setExpanded} />
+    </>
+  );
+}
 
-      <ReciterPicker
-        open={reciterPickerOpen}
-        onOpenChange={setReciterPickerOpen}
-      />
+/** Full player: scrubber, repeat, speed, reciter and download. */
+function NowPlaying({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t, locale } = useI18n();
+  const { verseKey, status, repeat } = useAudio();
+  const { toggle, next, previous, stop, setRepeat } = useAudio.getState();
+  const reciterId = usePreferences((s) => s.reciterId);
+  const playbackRate = usePreferences((s) => s.playbackRate);
+  const setPrefs = usePreferences((s) => s.set);
+  const { current, duration } = useAudioTime();
+  const [picking, setPicking] = useState(false);
+
+  const ref = verseKey ? parseVerseKey(verseKey) : null;
+  const chapter = ref ? getChapter(ref.chapter) : undefined;
+  if (!ref || !chapter) return null;
+
+  const RepeatIcon = repeat === "verse" ? Repeat1 : Repeat;
+  const repeatLabel = t(
+    repeat === "off"
+      ? "repeatOff"
+      : repeat === "verse"
+        ? "repeatVerse"
+        : "repeatSurah",
+  );
+  const nextSpeed =
+    SPEEDS[
+      (SPEEDS.findIndex((speed) => speed === playbackRate) + 1) % SPEEDS.length
+    ];
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="gap-6 sm:max-w-sm">
+          <DialogTitle className="text-center text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {t("nowPlaying")}
+          </DialogTitle>
+
+          <div className="hero-glow flex flex-col items-center rounded-3xl px-6 py-8 text-center">
+            <SurahName
+              chapter={chapter.id}
+              withPrefix
+              className="text-5xl text-primary"
+            />
+            <p className="mt-4 text-xl font-bold">
+              {locale === "ar" ? chapter.nameArabic : chapter.nameSimple}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("ayahOf", { verse: ref.verse, total: chapter.versesCount })}
+            </p>
+          </div>
+
+          <button
+            onClick={() => setPicking(true)}
+            className="flex items-center justify-between rounded-2xl bg-secondary/70 px-4 py-3 text-start transition-colors hover:bg-secondary"
+          >
+            <span>
+              <span className="block text-xs text-muted-foreground">
+                {t("reciter")}
+              </span>
+              <span className="font-semibold">
+                {getReciter(reciterId).name[locale]}
+              </span>
+            </span>
+            <ChevronRight className="size-5 text-muted-foreground rtl:rotate-180" />
+          </button>
+
+          <div>
+            <Slider
+              min={0}
+              max={1}
+              step={0.001}
+              value={[duration ? current / duration : 0]}
+              onValueChange={([value]) => seekTo(value)}
+              aria-label={t("nowPlaying")}
+            />
+            <div className="mt-1 flex justify-between text-xs tabular-nums text-muted-foreground">
+              <span>{clock(current)}</span>
+              <span>-{clock(Math.max(0, duration - current))}</span>
+            </div>
+          </div>
+
+          <div dir="ltr" className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setRepeat(NEXT_REPEAT[repeat])}
+              aria-label={repeatLabel}
+              title={repeatLabel}
+              className={cn(repeat !== "off" && "bg-secondary text-primary")}
+            >
+              <RepeatIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={previous}
+              aria-label={t("previous")}
+              className="size-12"
+            >
+              <SkipBack className="size-6 fill-current" />
+            </Button>
+            <Button
+              size="icon"
+              onClick={toggle}
+              aria-label={status === "playing" ? t("pause") : t("play")}
+              className="size-16 [&_svg]:size-7"
+            >
+              <PlayPauseIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={next}
+              aria-label={t("next")}
+              className="size-12"
+            >
+              <SkipForward className="size-6 fill-current" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPrefs({ playbackRate: nextSpeed })}
+              aria-label={t("playbackSpeed")}
+              className="text-sm font-bold tabular-nums"
+            >
+              {playbackRate}×
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <DownloadRecitation chapter={chapter.id} />
+            <Button
+              variant="ghost"
+              onClick={() => {
+                stop();
+                onOpenChange(false);
+              }}
+            >
+              <X /> {t("stop")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <ReciterPicker open={picking} onOpenChange={setPicking} />
     </>
   );
 }

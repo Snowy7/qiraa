@@ -1,0 +1,24 @@
+{
+  "name": "@qiraa/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform-agnostic Quran domain logic and offline dataset shared by the web and mobile apps.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./data/*": "./data/*"
+  },
+  "scripts": {
+    "generate": "node scripts/generate-data.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "adhan": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.7"
+  }
+}

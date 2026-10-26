@@ -2,121 +2,91 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import { version } from "./package.json";
+
+const coreData = path.resolve(__dirname, "../../packages/core/data");
+
+/** Default script whose data ships in the precache, so text works offline from the first visit. */
+const PRECACHED_SCRIPT = "qpc-hafs";
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     react(),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
-      registerType: "autoUpdate",
+      // Ask before reloading so an update never interrupts reading or recitation.
+      registerType: "prompt",
       injectRegister: false,
-      includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       manifest: {
-        name: "Noor - Your Quran Companion",
-        short_name: "Noor",
+        name: "Qiraa — Quran",
+        short_name: "Qiraa",
         description:
-          "A beautiful Quran app for reading, listening, and memorizing with offline support.",
-        theme_color: "#D97B2A",
-        background_color: "#FAF7F2",
+          "Read, listen and memorise the Quran. Accurate mushaf fonts, works offline.",
+        theme_color: "#faf6ef",
+        background_color: "#faf6ef",
         display: "standalone",
-        orientation: "portrait-primary",
         start_url: "/",
         scope: "/",
-        lang: "en",
         categories: ["education", "lifestyle", "books"],
-        icons: [
-          {
-            src: "/icons/icon-72x72.png",
-            sizes: "72x72",
+        icons: [72, 96, 128, 144, 152, 192, 384, 512]
+          .map((size) => ({
+            src: `/icons/icon-${size}x${size}.png`,
+            sizes: `${size}x${size}`,
             type: "image/png",
             purpose: "any",
-          },
-          {
-            src: "/icons/icon-96x96.png",
-            sizes: "96x96",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-128x128.png",
-            sizes: "128x128",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-144x144.png",
-            sizes: "144x144",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-152x152.png",
-            sizes: "152x152",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-384x384.png",
-            sizes: "384x384",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-maskable-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "maskable",
-          },
-          {
-            src: "/icons/icon-maskable-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
+          }))
+          .concat(
+            [192, 512].map((size) => ({
+              src: `/icons/icon-maskable-${size}x${size}.png`,
+              sizes: `${size}x${size}`,
+              type: "image/png",
+              purpose: "maskable",
+            })),
+          ),
         shortcuts: [
-          {
-            name: "Continue Reading",
-            short_name: "Read",
-            description: "Continue from where you left off",
-            url: "/quran",
-          },
-          {
-            name: "Prayer Times",
-            short_name: "Prayer",
-            description: "View today's prayer times",
-            url: "/prayer-times",
-          },
+          { name: "Quran", url: "/quran" },
+          { name: "Prayer times", url: "/prayer" },
         ],
       },
       injectManifest: {
-        // Keep precache focused on app-shell files so SW updates remain reliable.
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        // Only link previews use the share image.
+        globIgnores: ["og-image.png"],
+        globPatterns: [
+          "**/*.{js,css,html,ico,png,svg,webmanifest}",
+          "assets/*.woff2",
+          "fonts/quran/hafs/uthmanic_hafs/*.woff2",
+          "fonts/quran/hafs/nastaleeq/**/*.woff2",
+          "fonts/quran/surah-names/**/*.woff2",
+        ],
+        // Quran data chunks are cached on use (sw.ts); only the default script is precached.
+        manifestTransforms: [
+          async (entries) => ({
+            manifest: entries.filter(
+              (entry) =>
+                !entry.url.startsWith("assets/data/") ||
+                entry.url.startsWith(`assets/data/${PRECACHED_SCRIPT}-`),
+            ),
+            warnings: [],
+          }),
+        ],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       devOptions: {
-        enabled: true,
-        type: "classic",
+        enabled: false,
       },
     }),
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Consume workspace packages from source: no separate build step needed.
+      "@template/ui": path.resolve(__dirname, "../../packages/ui/src/index.ts"),
+      "@quran-data": coreData,
     },
   },
   server: {
@@ -127,24 +97,16 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            // Database layer
-            if (id.includes("dexie")) return "db";
-            // Data fetching + React core (kept together to avoid circular deps)
-            if (
-              id.includes("@tanstack") ||
-              id.includes("react-dom") ||
-              id.includes("react-router")
-            )
-              return "vendor-react";
-            // Animations
-            if (id.includes("framer-motion")) return "animations";
-            // Auth
-            if (id.includes("@clerk")) return "clerk";
-            // Sanitization
-            if (id.includes("dompurify")) return "dompurify";
-          }
+        // Name Quran data chunks after their script (assets/data/qcf-v2-p001-<hash>.js)
+        // so the service worker can tell them apart.
+        chunkFileNames: (chunk) => {
+          const id = chunk.facadeModuleId ?? "";
+          if (!id.startsWith(coreData)) return "assets/[name]-[hash].js";
+          const relative = path.relative(coreData, id).replace(/\.json$/, "");
+          const name = relative
+            .replace(/^scripts\//, "")
+            .replace(/[\\/]/g, "-");
+          return `assets/data/${name}-[hash].js`;
         },
       },
     },

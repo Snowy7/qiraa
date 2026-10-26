@@ -1,11 +1,4 @@
-# Quota - AI Cost Tracking Proxy
-# https://usequota.dev
-
 User-agent: *
 Allow: /
-Disallow: /dashboard/
-Disallow: /onboarding
-Disallow: /sso-callback
 
-# Sitemap
-Sitemap: https://usequota.dev/sitemap.xml
+Sitemap: https://qiraa.app/sitemap.xml

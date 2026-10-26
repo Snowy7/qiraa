@@ -1,474 +1,300 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import DOMPurify from "dompurify";
+import { useLiveQuery } from "dexie-react-hooks";
+import { ArrowRight, Brain, Search, Settings, Sparkles } from "lucide-react";
+import { Button } from "@template/ui";
 import {
-  BookOpen,
-  Brain,
-  ChevronRight,
-  Search,
-  Bookmark,
-  Flame,
-  Settings,
-  Sparkles,
-  Sunrise,
-  Clock,
-} from "lucide-react";
-import { Button, Card, CardContent } from "@template/ui";
-import { cn } from "@/lib/utils";
-import { useChapters } from "@/lib/api/chapters";
-import { getLastRead, type ReadingHistoryEntry } from "@/lib/db";
-import { getDueReviews, getTotalProgress, getStreak } from "@/lib/db/hifz";
-import { useTranslation, type TranslationKey } from "@/lib/i18n";
-import { usePrayerTimes, type PrayerName } from "@/lib/hooks/use-prayer-times";
-
-const GREETING_KEYS: Record<string, TranslationKey> = {
-  peace: "greetingPeace",
-  morning: "greetingMorning",
-  afternoon: "greetingAfternoon",
-  evening: "greetingEvening",
-};
-
-function getGreetingKey(): TranslationKey {
-  const hour = new Date().getHours();
-  if (hour < 5) return GREETING_KEYS.peace;
-  if (hour < 12) return GREETING_KEYS.morning;
-  if (hour < 17) return GREETING_KEYS.afternoon;
-  if (hour < 21) return GREETING_KEYS.evening;
-  return GREETING_KEYS.peace;
-}
-
-const PRAYER_LABEL_KEYS: Record<PrayerName, TranslationKey> = {
-  Fajr: "fajr",
-  Sunrise: "sunrise",
-  Dhuhr: "dhuhr",
-  Asr: "asr",
-  Maghrib: "maghrib",
-  Isha: "isha",
-};
+  QURAN_SCRIPTS,
+  getChapter,
+  pageOfVerse,
+  parseVerseKey,
+  toVerseKey,
+  type MessageKey,
+} from "@qiraa/core";
+import { MosqueSkyline, BrandMark } from "@/components/icons";
+import { Page, SectionTitle } from "@/components/page";
+import { PrayerHero } from "@/components/prayer/prayer-hero";
+import { SurahName } from "@/components/quran/ornaments";
+import { VerseText } from "@/components/quran/verse-text";
+import { useChapterTranslation } from "@/lib/api/queries";
+import { getHifzSummary } from "@/lib/db/hifz";
+import { getLastRead } from "@/lib/db/reading-history";
+import { useI18n } from "@/lib/i18n";
+import { useScriptIndex, useVerse } from "@/lib/quran/data";
+import { usePreferences } from "@/lib/stores/preferences";
 
 const DAILY_VERSES = [
-  {
-    key: "2:286",
-    arabic:
-      "\u0644\u0627 \u064A\u0643\u0644\u0641 \u0627\u0644\u0644\u0647 \u0646\u0641\u0633\u064B\u0627 \u0625\u0644\u0627 \u0648\u0633\u0639\u0647\u0627",
-    translation: "Allah does not burden a soul beyond that it can bear.",
-  },
-  {
-    key: "94:5",
-    arabic:
-      "\u0641\u0625\u0646 \u0645\u0639 \u0627\u0644\u0639\u0633\u0631 \u064A\u0633\u0631\u064B\u0627",
-    translation: "For indeed, with hardship comes ease.",
-  },
-  {
-    key: "2:152",
-    arabic:
-      "\u0641\u0627\u0630\u0643\u0631\u0648\u0646\u064A \u0623\u0630\u0643\u0631\u0643\u0645",
-    translation: "So remember Me; I will remember you.",
-  },
-  {
-    key: "3:139",
-    arabic:
-      "\u0648\u0644\u0627 \u062A\u0647\u0646\u0648\u0627 \u0648\u0644\u0627 \u062A\u062D\u0632\u0646\u0648\u0627 \u0648\u0623\u0646\u062A\u0645 \u0627\u0644\u0623\u0639\u0644\u0648\u0646",
-    translation: "Do not weaken and do not grieve, for you are superior.",
-  },
-  {
-    key: "13:28",
-    arabic:
-      "\u0623\u0644\u0627 \u0628\u0630\u0643\u0631 \u0627\u0644\u0644\u0647 \u062A\u0637\u0645\u0626\u0646 \u0627\u0644\u0642\u0644\u0648\u0628",
-    translation: "Verily, in the remembrance of Allah do hearts find rest.",
-  },
-  {
-    key: "65:3",
-    arabic:
-      "\u0648\u0645\u0646 \u064A\u062A\u0648\u0643\u0644 \u0639\u0644\u0649 \u0627\u0644\u0644\u0647 \u0641\u0647\u0648 \u062D\u0633\u0628\u0647",
-    translation:
-      "And whoever relies upon Allah \u2014 then He is sufficient for him.",
-  },
-  {
-    key: "39:53",
-    arabic:
-      "\u0644\u0627 \u062A\u0642\u0646\u0637\u0648\u0627 \u0645\u0646 \u0631\u062D\u0645\u0629 \u0627\u0644\u0644\u0647",
-    translation: "Do not despair of the mercy of Allah.",
-  },
+  "2:286",
+  "94:5",
+  "2:152",
+  "3:139",
+  "13:28",
+  "65:3",
+  "39:53",
+  "2:186",
+  "29:69",
+  "20:114",
+  "8:46",
+  "16:128",
 ];
 
-function getDailyVerse() {
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
-      86400000,
-  );
-  return DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
-}
+/** Frequently recited passages; the label defaults to the surah name. */
+const QUICK_ACCESS: readonly { verseKey: string; label?: MessageKey }[] = [
+  { verseKey: "2:255", label: "ayatAlKursi" },
+  { verseKey: "18:1" },
+  { verseKey: "36:1" },
+  { verseKey: "55:1" },
+  { verseKey: "56:1" },
+  { verseKey: "67:1" },
+];
 
-function formatPrayerTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function greetingKey(hour: number): MessageKey {
+  if (hour >= 4 && hour < 12) return "greetingMorning";
+  if (hour >= 12 && hour < 17) return "greetingAfternoon";
+  if (hour >= 17 && hour < 22) return "greetingEvening";
+  return "greetingNight";
 }
 
 export default function HomePage() {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { data: chapters } = useChapters();
-  const [lastRead, setLastRead] = useState<ReadingHistoryEntry | null>(null);
-  const [dueCount, setDueCount] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [totalProgress, setTotalProgress] = useState({
-    total: 6236,
-    memorized: 0,
-  });
-
-  const {
-    prayers,
-    nextPrayer,
-    nextPrayerTime,
-    countdown,
-    loading: prayerLoading,
-    error: prayerError,
-  } = usePrayerTimes();
-
-  useEffect(() => {
-    getLastRead().then((r) => setLastRead(r ?? null));
-    getDueReviews().then((r) => setDueCount(r.length));
-    getStreak().then(setStreak);
-    getTotalProgress().then(setTotalProgress);
-  }, []);
-
-  const lastReadChapter =
-    lastRead && chapters
-      ? chapters.find((c) => c.id === lastRead.chapterId)
-      : null;
-
-  const dailyVerse = getDailyVerse();
-  const greetingKey = getGreetingKey();
+  const { t } = useI18n();
 
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
-      <header className="safe-area-top">
-        <div className="flex items-center justify-between h-16 px-6">
-          <h1
-            className="text-2xl font-bold tracking-tight text-foreground"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            {t("noor")}
+    <Page width="wide" className="pb-6">
+      <header className="flex items-center gap-3 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] md:pb-8 md:pt-10">
+        <BrandMark className="size-9 text-primary md:hidden" />
+        <div className="min-w-0 flex-1">
+          <p className="hidden text-sm font-medium text-muted-foreground md:block">
+            {t("appName")}
+          </p>
+          <h1 className="truncate text-2xl font-bold tracking-tight md:text-[2rem]">
+            {t(greetingKey(new Date().getHours()))}
           </h1>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-2xl text-muted-foreground hover:bg-secondary"
-              onClick={() => navigate("/search")}
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-2xl text-muted-foreground hover:bg-secondary"
-              onClick={() => navigate("/settings")}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
+        <Link
+          to="/search"
+          className="hidden h-11 w-72 items-center gap-2 rounded-full border border-border bg-card px-4 text-[15px] text-muted-foreground transition-colors hover:bg-secondary lg:flex"
+        >
+          <Search className="size-4" /> {t("searchPlaceholder")}
+        </Link>
+        <Button asChild variant="ghost" size="icon" className="lg:hidden">
+          <Link to="/search" aria-label={t("search")}>
+            <Search />
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" size="icon" className="md:hidden">
+          <Link to="/settings" aria-label={t("settings")}>
+            <Settings />
+          </Link>
+        </Button>
       </header>
 
-      <div className="px-6 pb-4 space-y-4">
-        {/* Greeting */}
-        <div>
-          <p className="text-lg font-semibold text-foreground">
-            {t(greetingKey)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t("mayDayBeBlessed")}
-          </p>
-        </div>
-
-        {/* Last Read / Continue Reading Card */}
-        {lastReadChapter && lastRead ? (
-          <Link
-            to={`/quran/${lastRead.chapterId}?verse=${lastRead.verseNumber}`}
-          >
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent p-5 shadow-elevated">
-              {/* Decorative circles */}
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-              <div className="absolute -bottom-4 -right-2 w-16 h-16 rounded-full bg-white/5" />
-              <div className="absolute top-1/2 right-8 w-8 h-8 rounded-full bg-white/8" />
-
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm">
-                    <BookOpen className="h-3 w-3 text-white/90" />
-                    <span className="text-[11px] font-medium text-white/90">
-                      {t("lastRead")}
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-bold text-white mb-0.5">
-                  {lastReadChapter.name_simple}
-                </h3>
-                <p className="text-sm text-white/70">
-                  {t("ayah")} {lastRead.verseNumber} /{" "}
-                  {lastReadChapter.verses_count}
-                </p>
-
-                <div className="mt-4">
-                  <div className="h-1.5 rounded-full bg-white/15 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-white/60 transition-all duration-500"
-                      style={{
-                        width: `${Math.round((lastRead.verseNumber / lastReadChapter.verses_count) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
-        ) : (
-          <Link to="/quran">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent p-5 shadow-elevated">
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-              <div className="absolute -bottom-4 -right-2 w-16 h-16 rounded-full bg-white/5" />
-
-              <div className="relative flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 shrink-0">
-                  <BookOpen className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-base text-white">
-                    {t("startReading")}
-                  </p>
-                  <p className="text-sm text-white/70 mt-0.5">
-                    {t("beginQuranJourney")}
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-white/50" />
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-2">
-          <Link to="/quran">
-            <QuickAction
-              icon={BookOpen}
-              label={t("read")}
-              color="text-primary"
-              bg="bg-primary/8"
-            />
-          </Link>
-          <Link to="/collections">
-            <QuickAction
-              icon={Bookmark}
-              label={t("saved")}
-              color="text-amber-600 dark:text-amber-400"
-              bg="bg-amber-500/8"
-            />
-          </Link>
-          <Link to="/hifz">
-            <QuickAction
-              icon={Brain}
-              label={t("hifz")}
-              color="text-violet-600 dark:text-violet-400"
-              bg="bg-violet-500/8"
-            />
-          </Link>
-          <Link to="/search">
-            <QuickAction
-              icon={Search}
-              label={t("search")}
-              color="text-blue-600 dark:text-blue-400"
-              bg="bg-blue-500/8"
-            />
-          </Link>
-        </div>
-
-        {/* Prayer Times Card */}
-        <Link to="/prayer-times">
-          <Card className="border-0 shadow-card hover:shadow-soft transition-shadow overflow-hidden">
-            <CardContent className="p-0">
-              <div className="relative px-5 py-4">
-                <div className="absolute inset-0 bg-gradient-to-br from-sky-500/[0.04] via-transparent to-blue-500/[0.04]" />
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 shrink-0">
-                        <Sunrise className="h-4 w-4 text-sky-600 dark:text-sky-400" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-foreground">
-                          {t("prayerTimes")}
-                        </p>
-                        {nextPrayer && !prayerLoading && !prayerError ? (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {t("nextPrayerLabel")}:{" "}
-                            {t(PRAYER_LABEL_KEYS[nextPrayer])}
-                          </p>
-                        ) : prayerLoading ? (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {t("viewSchedule")}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {nextPrayerTime && !prayerLoading && !prayerError && (
-                      <div className="text-right">
-                        <p className="text-sm font-bold tabular-nums text-foreground">
-                          {formatPrayerTime(nextPrayerTime)}
-                        </p>
-                        {countdown && (
-                          <p className="text-[11px] font-medium tabular-nums text-primary mt-0.5 font-mono">
-                            {countdown}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Mini prayer timeline */}
-                  {prayers.length > 0 && !prayerLoading && !prayerError && (
-                    <div className="flex items-center gap-1">
-                      {prayers
-                        .filter((p) => p.name !== "Sunrise")
-                        .map((p) => {
-                          const isPast = p.time < new Date();
-                          const isNext = p.name === nextPrayer;
-                          return (
-                            <div
-                              key={p.name}
-                              className="flex-1 flex flex-col items-center gap-1"
-                            >
-                              <div
-                                className={cn(
-                                  "h-1 w-full rounded-full transition-colors",
-                                  isNext
-                                    ? "bg-primary"
-                                    : isPast
-                                      ? "bg-primary/25"
-                                      : "bg-muted-foreground/10",
-                                )}
-                              />
-                              <span
-                                className={cn(
-                                  "text-[9px] font-medium",
-                                  isNext
-                                    ? "text-primary font-bold"
-                                    : isPast
-                                      ? "text-muted-foreground/50"
-                                      : "text-muted-foreground/70",
-                                )}
-                              >
-                                {t(PRAYER_LABEL_KEYS[p.name]).slice(0, 3)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Hifz Card */}
-        <Link to="/hifz">
-          <Card className="border-0 shadow-card hover:shadow-soft transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 shrink-0">
-                  <Brain className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm text-foreground">
-                      {t("memorization")}
-                    </p>
-                    {streak > 0 && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full">
-                        <Flame className="h-2.5 w-2.5" />
-                        {streak}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                    {dueCount > 0
-                      ? `${dueCount} ${dueCount !== 1 ? t("verses") : t("verse")} due`
-                      : totalProgress.memorized > 0
-                        ? `${totalProgress.memorized} ${t("versesMemorized")}`
-                        : t("startTracking")}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Verse of the Day */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            <p className="text-xs font-semibold text-foreground">
-              {t("verseOfTheDay")}
-            </p>
-          </div>
-          <Card className="border-0 shadow-card overflow-hidden">
-            <CardContent className="p-0">
-              <div className="relative px-5 py-4">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-accent/[0.03]" />
-                <div className="relative">
-                  <p
-                    className="text-xl leading-[2] text-foreground text-center mb-3"
-                    dir="rtl"
-                    style={{
-                      fontFamily: "'Scheherazade New', 'quran_common', serif",
-                    }}
-                  >
-                    {dailyVerse.arabic}
-                  </p>
-                  <p className="text-sm text-muted-foreground text-center leading-relaxed">
-                    {dailyVerse.translation}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground/50 text-center mt-3 font-medium">
-                    {t("surah")} {dailyVerse.key}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-12">
+        <PrayerHero className="md:col-span-2 md:min-h-[300px] xl:col-span-7 xl:row-span-2" />
+        <ContinueReading className="xl:col-span-5" />
+        <MemorizeCard className="xl:col-span-5" />
+        <VerseOfTheDay className="md:col-span-2 xl:col-span-7" />
+        <QuickAccess className="md:col-span-2 xl:col-span-5" />
       </div>
-    </div>
+    </Page>
   );
 }
 
-function QuickAction({
-  icon: Icon,
-  label,
-  color,
-  bg,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color: string;
-  bg: string;
-}) {
+function ContinueReading({ className }: { className?: string }) {
+  const { t, locale } = useI18n();
+  const scriptId = usePreferences((s) => s.script);
+  const index = useScriptIndex(scriptId).data;
+  const last = useLiveQuery(getLastRead, []);
+  const chapter = getChapter(last?.chapterId ?? 1)!;
+  const verse = last?.verseNumber ?? 1;
+  const href =
+    last?.readingMode === "mushaf" && index
+      ? `/mushaf/${pageOfVerse(index, toVerseKey(chapter.id, verse))}`
+      : `/quran/${chapter.id}${last ? `?verse=${verse}` : ""}`;
+  const progress = last ? verse / chapter.versesCount : 0;
+
   return (
-    <div className="flex flex-col items-center gap-1.5 py-2 press-effect">
-      <div
-        className={cn(
-          "flex h-11 w-11 items-center justify-center rounded-xl",
-          bg,
-        )}
-      >
-        <Icon className={cn("h-4.5 w-4.5", color)} />
+    <Link
+      to={href}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-primary p-6 text-primary-foreground shadow-float transition-transform active:scale-[0.99] ${className ?? ""}`}
+    >
+      <MosqueSkyline className="pointer-events-none absolute -bottom-2 end-0 h-24 w-64 opacity-15" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium opacity-80">
+            {last ? t("continueReading") : t("startReading")}
+          </p>
+          <p className="mt-1 text-2xl font-bold tracking-tight">
+            {locale === "ar" ? chapter.nameArabic : chapter.nameSimple}
+          </p>
+          <p className="mt-0.5 text-sm opacity-80">
+            {last
+              ? t("ayahOf", { verse, total: chapter.versesCount })
+              : t("startWithFatiha")}
+          </p>
+        </div>
+        <SurahName chapter={chapter.id} className="text-5xl opacity-90" />
       </div>
-      <span className="text-[11px] font-medium text-muted-foreground">
-        {label}
-      </span>
-    </div>
+      <div className="relative mt-6 flex items-center gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
+          <div
+            className="h-full rounded-full bg-white/85"
+            style={{ width: `${Math.max(progress, 0.02) * 100}%` }}
+          />
+        </div>
+        <ArrowRight className="size-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+      </div>
+    </Link>
+  );
+}
+
+function MemorizeCard({ className }: { className?: string }) {
+  const { t, n } = useI18n();
+  const summary = useLiveQuery(getHifzSummary, []);
+  const due = summary?.due ?? 0;
+  const memorized = summary?.memorized ?? 0;
+  const fraction = summary ? memorized / summary.total : 0;
+
+  return (
+    <Link
+      to={due > 0 ? "/memorize/review" : "/memorize"}
+      className={`surface flex items-center gap-5 p-5 transition-colors hover:bg-secondary/40 ${className ?? ""}`}
+    >
+      <div className="relative size-16 shrink-0">
+        <svg viewBox="0 0 36 36" className="size-16 -rotate-90">
+          <circle
+            cx="18"
+            cy="18"
+            r="15.5"
+            fill="none"
+            strokeWidth="3.5"
+            className="stroke-secondary"
+          />
+          <circle
+            cx="18"
+            cy="18"
+            r="15.5"
+            fill="none"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            className="stroke-primary"
+            strokeOpacity={fraction > 0 ? 1 : 0}
+            strokeDasharray={`${fraction * 97.4} 97.4`}
+          />
+        </svg>
+        <Brain className="absolute inset-0 m-auto size-6 text-primary" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold">{t("memorization")}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {due > 0
+            ? t("dueCount", { n: due })
+            : memorized > 0
+              ? t("memorizedOf", { n: memorized, total: summary!.total })
+              : t("startMemorizing")}
+        </p>
+      </div>
+      {due > 0 && (
+        <span className="rounded-full bg-primary px-3 py-1 text-sm font-bold tabular-nums text-primary-foreground">
+          {n(due)}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function VerseOfTheDay({ className }: { className?: string }) {
+  const { t, locale } = useI18n();
+  const scriptId = usePreferences((s) => s.script);
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
+      86_400_000,
+  );
+  const verseKey = DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
+  const ref = parseVerseKey(verseKey)!;
+  const verse = useVerse(scriptId, verseKey).data;
+  const translation = useChapterTranslation(ref.chapter, true).data?.[
+    ref.verse - 1
+  ];
+  const chapter = getChapter(ref.chapter)!;
+
+  return (
+    <section className={`surface reader-scope p-6 md:p-8 ${className ?? ""}`}>
+      <SectionTitle>
+        <span className="flex items-center gap-2">
+          <Sparkles className="size-[18px] text-accent" /> {t("verseOfTheDay")}
+        </span>
+      </SectionTitle>
+      <Link to={`/quran/${ref.chapter}?verse=${ref.verse}`} className="block">
+        {verse ? (
+          <VerseText
+            verse={verse}
+            script={QURAN_SCRIPTS[scriptId]}
+            className="text-center"
+          />
+        ) : (
+          <div className="mx-auto h-12 w-3/4 animate-pulse rounded-2xl bg-foreground/[0.05]" />
+        )}
+        {translation && (
+          <p
+            dir="auto"
+            className="translation-text mx-auto mt-4 max-w-2xl text-center text-[15px] leading-relaxed text-foreground/70 md:text-base"
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(translation),
+            }}
+          />
+        )}
+        <p className="mt-4 text-center text-sm font-semibold text-primary">
+          {locale === "ar" ? chapter.nameArabic : chapter.nameSimple} ·{" "}
+          {verseKey}
+        </p>
+      </Link>
+    </section>
+  );
+}
+
+function QuickAccess({ className }: { className?: string }) {
+  const { t, locale } = useI18n();
+  return (
+    <section className={`surface p-5 md:p-6 ${className ?? ""}`}>
+      <SectionTitle
+        action={
+          <Link to="/quran" className="text-sm font-semibold text-primary">
+            {t("seeAll")}
+          </Link>
+        }
+      >
+        {t("quickAccess")}
+      </SectionTitle>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2">
+        {QUICK_ACCESS.map(({ label, verseKey }) => {
+          const ref = parseVerseKey(verseKey)!;
+          const chapter = getChapter(ref.chapter)!;
+          return (
+            <Link
+              key={verseKey}
+              to={`/quran/${chapter.id}${ref.verse > 1 ? `?verse=${ref.verse}` : ""}`}
+              className="flex items-center justify-between gap-2 rounded-2xl bg-secondary/70 px-4 py-3 transition-colors hover:bg-secondary"
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">
+                  {label
+                    ? t(label)
+                    : locale === "ar"
+                      ? chapter.nameArabic
+                      : chapter.nameSimple}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {verseKey}
+                </span>
+              </span>
+              <SurahName
+                chapter={chapter.id}
+                className="shrink-0 text-2xl text-primary"
+              />
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }

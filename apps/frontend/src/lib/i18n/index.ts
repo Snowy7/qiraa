@@ -1,49 +1,25 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { translations, type Language, type TranslationKey } from './translations';
+import { useCallback } from "react";
+import {
+  formatMessage,
+  formatNumber,
+  type Locale,
+  type MessageKey,
+} from "@qiraa/core";
+import { usePreferences } from "@/lib/stores/preferences";
 
-export type { Language, TranslationKey };
-export { translations };
+export type { MessageKey };
 
-interface I18nState {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-}
-
-export const useI18nStore = create<I18nState>()(
-  persist(
-    (set) => ({
-      language: 'en',
-      setLanguage: (language) => {
-        set({ language });
-        // Update document direction and lang
-        document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-        document.documentElement.lang = language;
-      },
-    }),
-    {
-      name: 'noor-language',
-      onRehydrateStorage: () => (state?: I18nState) => {
-        // Apply saved language on app load
-        if (state?.language) {
-          document.documentElement.dir = state.language === 'ar' ? 'rtl' : 'ltr';
-          document.documentElement.lang = state.language;
-        }
-      },
-    }
-  )
-);
-
-/** Hook to get translated string */
-export function useTranslation() {
-  const language = useI18nStore((s) => s.language);
-  const setLanguage = useI18nStore((s) => s.setLanguage);
-
-  function t(key: TranslationKey): string {
-    return translations[key][language];
-  }
-
-  const isRTL = language === 'ar';
-
-  return { t, language, setLanguage, isRTL };
+/** Translation helpers bound to the user's UI language. */
+export function useI18n() {
+  const locale: Locale = usePreferences((s) => s.language);
+  const t = useCallback(
+    (key: MessageKey, params?: Record<string, string | number>) =>
+      formatMessage(key, locale, params),
+    [locale],
+  );
+  const n = useCallback(
+    (value: number) => formatNumber(value, locale),
+    [locale],
+  );
+  return { t, n, locale, isRtl: locale === "ar" };
 }
