@@ -48,6 +48,8 @@ export function MushafScroll({
 }: MushafScrollProps) {
   const list = useRef<HTMLDivElement>(null);
   const [startPage] = useState(initialPage);
+  /** The list has scrolled to `startPage` (once, even if effects re-run). */
+  const started = useRef(false);
   const [range, setRange] = useState<readonly [number, number]>([
     startPage,
     startPage,
@@ -81,6 +83,8 @@ export function MushafScroll({
      * into it (0–1), and where that was in the document.
      */
     let anchor: { page: number; offset: number; y: number } | null = null;
+    /** Scroll position at the last update. */
+    let scrolledTo = 0;
 
     /** Index of the slot at `y` px from the top of the list. */
     const indexAt = (y: number) => {
@@ -109,8 +113,17 @@ export function MushafScroll({
       // spot needs no scroll at all (a fling carries on).
       if (anchor) {
         const shift = spotY(top, anchor.page, anchor.offset) - anchor.y;
-        if (Math.abs(shift) > 0.5)
-          window.scrollTo({ top: window.scrollY + shift });
+        if (Math.abs(shift) > 0.5) {
+          // A shorter document pulls the scroll back to its new end on its
+          // own; that isn't a scroll to keep, so start from where we were.
+          const end =
+            document.documentElement.scrollHeight - window.innerHeight;
+          const pulledBack =
+            window.scrollY >= end - 1 && window.scrollY < scrolledTo;
+          window.scrollTo({
+            top: (pulledBack ? scrolledTo : window.scrollY) + shift,
+          });
+        }
       }
 
       const line = window.scrollY + window.innerHeight * READING_LINE - top;
@@ -118,6 +131,7 @@ export function MushafScroll({
       const slot = slots[index];
       const offset = clamp((line - slot.offsetTop) / slot.offsetHeight, 0, 1);
       anchor = { page: index + 1, offset, y: spotY(top, index + 1, offset) };
+      scrolledTo = window.scrollY;
 
       const first =
         indexAt(window.scrollY - window.innerHeight * OVERSCAN - top) + 1;
@@ -138,7 +152,10 @@ export function MushafScroll({
     };
     const observer = new ResizeObserver(update);
 
-    document.getElementById(pageSlotId(startPage))?.scrollIntoView();
+    if (!started.current) {
+      started.current = true;
+      document.getElementById(pageSlotId(startPage))?.scrollIntoView();
+    }
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
