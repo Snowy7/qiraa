@@ -28,6 +28,7 @@ const CONCURRENCY = 6;
 
 type ApiWord = {
   verse_key: string;
+  position: number;
   char_type_name: string;
   line_number: number;
   page_number: number;
@@ -41,7 +42,12 @@ type ApiWord = {
 };
 type ApiVerse = { verse_key: string; words: ApiWord[] };
 
-type Segment = [verseKey: string, words: WordText[], end?: string];
+type Segment = [
+  verseKey: string,
+  start: number,
+  words: WordText[],
+  end?: string,
+];
 type Line = [lineNumber: number, segments: Segment[]];
 
 const stripTags = (text: string) => text.replace(/<[^>]+>/g, "");
@@ -240,14 +246,14 @@ async function generateJob(
           lines.set(word.line_number, segments);
           let segment = segments.at(-1);
           if (!segment || segment[0] !== verse.verse_key) {
-            segment = [verse.verse_key, []];
+            segment = [verse.verse_key, word.position, []];
             segments.push(segment);
           }
           if (word.char_type_name === "end") {
-            segment[2] = output.end(word);
+            segment[3] = output.end(word);
             verseCount++;
           } else {
-            segment[1].push(output.word(word));
+            segment[2].push(output.word(word));
           }
         }
       }

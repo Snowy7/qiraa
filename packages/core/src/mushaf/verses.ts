@@ -47,7 +47,7 @@ export function assembleChapterVerses(
   const verses = new Map<string, AssembledVerse>();
   for (const { page, lines } of pages) {
     for (const [, segments] of lines) {
-      for (const [key, words, end] of segments) {
+      for (const [key, , words, end] of segments) {
         const ref = parseVerseKey(key);
         if (!ref || ref.chapter !== chapter) continue;
         let verse = verses.get(key);

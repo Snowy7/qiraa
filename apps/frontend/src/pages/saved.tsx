@@ -66,7 +66,7 @@ export default function SavedPage() {
             hint={t("noCollectionsHint")}
           />
         )}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data?.collections.map((collection) => (
             <Link
               key={collection.id}

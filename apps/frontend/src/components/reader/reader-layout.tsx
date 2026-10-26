@@ -1,5 +1,12 @@
-import type { ReactNode } from "react";
-import { BookOpen, ChevronDown, Rows3, SlidersHorizontal } from "lucide-react";
+import { useEffect, type ReactNode } from "react";
+import {
+  BookOpen,
+  ChevronDown,
+  Pause,
+  Play,
+  Rows3,
+  SlidersHorizontal,
+} from "lucide-react";
 import {
   Button,
   Dialog,
@@ -11,6 +18,7 @@ import type { Chapter } from "@noor/core";
 import { BackButton, Segmented } from "@/components/page";
 import { SurahName } from "@/components/quran/ornaments";
 import { useI18n } from "@/lib/i18n";
+import { startWordHighlighting, useAudio } from "@/lib/stores/audio";
 import { useReaderUi } from "@/lib/stores/reader-ui";
 import type { ReadingMode } from "@/lib/stores/preferences";
 import { ReaderSettings } from "./reader-settings";
@@ -25,6 +33,8 @@ interface ReaderLayoutProps {
   mode: ReadingMode;
   onModeChange: (mode: ReadingMode) => void;
   hrefForChapter: (chapter: Chapter) => string;
+  /** Ayah to start from when the play button is pressed (what's on screen). */
+  playFrom: () => string;
   children: ReactNode;
 }
 
@@ -38,10 +48,20 @@ export function ReaderLayout({
   mode,
   onModeChange,
   hrefForChapter,
+  playFrom,
   children,
 }: ReaderLayoutProps) {
   const { t, locale } = useI18n();
   const { sheet, open, close } = useReaderUi();
+  const playing = useAudio((s) => s.status === "playing");
+
+  useEffect(startWordHighlighting, []);
+
+  const togglePlay = () => {
+    const audio = useAudio.getState();
+    if (audio.verseKey) audio.toggle();
+    else void audio.play(playFrom());
+  };
 
   return (
     <div className="flex min-h-dvh">
@@ -67,7 +87,7 @@ export function ReaderLayout({
             >
               <SurahName
                 chapter={chapter.id}
-                className="text-[1.75rem] text-primary"
+                className="hidden text-[1.75rem] text-primary sm:inline-flex"
               />
               <span className="min-w-0">
                 <span className="flex items-center gap-1 text-[15px] font-bold leading-tight">
@@ -114,6 +134,18 @@ export function ReaderLayout({
                   },
                 ]}
               />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePlay}
+                aria-label={playing ? t("pause") : t("play")}
+              >
+                {playing ? (
+                  <Pause className="fill-current" />
+                ) : (
+                  <Play className="fill-current" />
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"

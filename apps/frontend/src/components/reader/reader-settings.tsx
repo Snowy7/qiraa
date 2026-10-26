@@ -93,7 +93,7 @@ export function ReadingOptions() {
         <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
           {t("quranScript")}
         </h3>
-        <div className="grid gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {QURAN_SCRIPT_IDS.map((id) => {
             const script = QURAN_SCRIPTS[id];
             const selected = prefs.script === id;
@@ -201,6 +201,15 @@ export function ReadingOptions() {
           </span>
           <ChevronRight className="size-5 shrink-0 text-muted-foreground rtl:rotate-180" />
         </button>
+        <SettingRow
+          label={t("followRecitation")}
+          hint={t("followRecitationHint")}
+        >
+          <Switch
+            checked={prefs.followRecitation}
+            onCheckedChange={(value) => prefs.set({ followRecitation: value })}
+          />
+        </SettingRow>
         <SettingRow label={t("autoPlayNext")} hint={t("autoPlayNextHint")}>
           <Switch
             checked={prefs.autoPlayNext}

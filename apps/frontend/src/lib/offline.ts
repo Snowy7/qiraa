@@ -5,11 +5,10 @@ import {
   QURAN_SCRIPTS,
   chapterTranslationUrl,
   getChapter,
-  getReciter,
-  toVerseKey,
-  verseAudioUrl,
   type QuranScriptId,
 } from "@noor/core";
+import { queryClient } from "@/lib/query-client";
+import { recitationQuery } from "@/lib/stores/audio";
 import { prefetchScriptData } from "@/lib/quran/data";
 import { FONT_ROOT, prefetchPageFonts } from "@/lib/quran/fonts";
 
@@ -61,14 +60,18 @@ export const useDownloads = create<DownloadsState>()(
 export const jobId = {
   script: (id: QuranScriptId) => `script:${id}`,
   translation: (id: number) => `translation:${id}`,
-  audio: (reciterId: string, chapter: number) =>
+  audio: (reciterId: number, chapter: number) =>
     `audio:${reciterId}:${chapter}`,
 };
 
+/**
+ * Runs a download job with progress. `progress()` advances by one step;
+ * `progress(n)` sets the absolute amount (used for byte counts).
+ */
 async function run(
   id: string,
   total: number,
-  work: (tick: () => void) => Promise<void>,
+  work: (progress: (done?: number) => void) => Promise<void>,
 ) {
   const { setJob } = useDownloads.getState();
   if (useDownloads.getState().jobs[id]?.status === "running") return;
@@ -77,7 +80,15 @@ async function run(
   let done = 0;
   setJob(id, { status: "running", done, total });
   try {
-    await work(() => setJob(id, { status: "running", done: ++done, total }));
+    let shownPercent = 0;
+    await work((value) => {
+      done = value ?? done + 1;
+      // Byte progress arrives in small chunks; only re-render on whole percents.
+      const percent = Math.floor((done / total) * 100);
+      if (percent === shownPercent) return;
+      shownPercent = percent;
+      setJob(id, { status: "running", done, total });
+    });
     setJob(id, { status: "done" });
   } catch (error) {
     console.error(`Download ${id} failed`, error);
@@ -95,13 +106,14 @@ async function fetchOk(url: string) {
 export function downloadScript(scriptId: QuranScriptId) {
   const { font } = QURAN_SCRIPTS[scriptId];
   const total = font.kind === "page" ? 605 : 2;
-  return run(jobId.script(scriptId), total, async (tick) => {
+  return run(jobId.script(scriptId), total, async (progress) => {
     await prefetchScriptData(scriptId);
-    tick();
-    if (font.kind === "page") await prefetchPageFonts(font.version, tick);
-    else {
+    progress();
+    if (font.kind === "page") {
+      await prefetchPageFonts(font.version, () => progress());
+    } else {
       await fetchOk(`${FONT_ROOT}${font.file}`);
-      tick();
+      progress();
     }
   });
 }
@@ -111,27 +123,38 @@ export function downloadTranslation(translationId: number) {
   return run(
     jobId.translation(translationId),
     CHAPTERS.length,
-    async (tick) => {
+    async (progress) => {
       for (const chapter of CHAPTERS) {
         await fetchOk(chapterTranslationUrl(translationId, chapter.id));
-        tick();
+        progress();
       }
     },
   );
 }
 
-/** Every ayah of a surah for a reciter. */
-export function downloadChapterAudio(reciterId: string, chapterId: number) {
-  const chapter = getChapter(chapterId);
-  if (!chapter) return Promise.resolve();
-  const reciter = getReciter(reciterId);
+/** A surah's recitation file (and its timings) for offline listening. */
+export async function downloadChapterAudio(
+  reciterId: number,
+  chapterId: number,
+) {
+  if (!getChapter(chapterId)) return;
+  const recitation = await queryClient.ensureQueryData(
+    recitationQuery(reciterId, chapterId),
+  );
   return run(
     jobId.audio(reciterId, chapterId),
-    chapter.versesCount,
-    async (tick) => {
-      for (let verse = 1; verse <= chapter.versesCount; verse++) {
-        await fetchOk(verseAudioUrl(reciter, toVerseKey(chapterId, verse)));
-        tick();
+    recitation.sizeBytes,
+    async (progress) => {
+      const res = await fetch(recitation.url);
+      if (!res.ok || !res.body)
+        throw new Error(`${res.status} ${recitation.url}`);
+      const reader = res.body.getReader();
+      let received = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.byteLength;
+        progress(received);
       }
     },
   );

@@ -31,10 +31,22 @@ describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
     expect(pages.size).toBe(index.pageCount);
   });
 
+  it("numbers words continuously across lines and pages", () => {
+    const next = new Map<string, number>();
+    for (let page = 1; page <= index.pageCount; page++) {
+      for (const [, segments] of pages.get(page)!) {
+        for (const [key, start, words] of segments) {
+          expect(start, key).toBe(next.get(key) ?? 1);
+          next.set(key, start + words.length);
+        }
+      }
+    }
+  });
+
   it("contains no leftover markup", () => {
     for (const lines of pages.values()) {
       for (const [, segments] of lines) {
-        for (const [key, words, end] of segments) {
+        for (const [key, , words, end] of segments) {
           for (const word of [...words, end ?? ""]) {
             expect(wordToPlainText(word), key).not.toMatch(/[<>]/);
           }

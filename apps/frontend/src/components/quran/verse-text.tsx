@@ -78,7 +78,7 @@ export const VerseText = memo(function VerseText({
       >
         {verse.words.map((word, i) => (
           <span key={i} className="flex flex-col items-center">
-            <span style={fontOf(word.page)}>
+            <span style={fontOf(word.page)} data-word={`${verse.key}:${i + 1}`}>
               <WordText word={word.text} />
             </span>
             <span
@@ -113,7 +113,9 @@ export const VerseText = memo(function VerseText({
     >
       {verse.words.map((word, i) => (
         <span key={i} style={fontOf(word.page)}>
-          <WordText word={word.text} />{" "}
+          <span data-word={`${verse.key}:${i + 1}`}>
+            <WordText word={word.text} />
+          </span>{" "}
         </span>
       ))}
       {verse.end && (

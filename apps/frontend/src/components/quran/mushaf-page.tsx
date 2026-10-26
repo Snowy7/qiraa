@@ -92,7 +92,7 @@ export const MushafPage = memo(function MushafPage({
                     }
                     style={{ fontFamily }}
                   >
-                    {segments.flatMap(([verseKey, words, end]) => {
+                    {segments.flatMap(([verseKey, start, words, end]) => {
                       const active =
                         verseKey === selectedVerse || verseKey === reciting;
                       const wordClass = cn(
@@ -107,6 +107,7 @@ export const MushafPage = memo(function MushafPage({
                         <span
                           key={`${verseKey}-${i}`}
                           className={wordClass}
+                          data-word={`${verseKey}:${start + i}`}
                           onClick={select}
                         >
                           <WordText word={word} />

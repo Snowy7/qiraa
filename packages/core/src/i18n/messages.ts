@@ -134,10 +134,22 @@ export const MESSAGES = {
   playbackSpeed: { en: "Speed", ar: "السرعة" },
   previous: { en: "Previous", ar: "السابق" },
   next: { en: "Next", ar: "التالي" },
+  stop: { en: "Stop", ar: "إيقاف" },
   stopAudio: { en: "Stop and close player", ar: "إيقاف وإغلاق المشغل" },
   audioFailed: {
     en: "Couldn't play this recitation",
     ar: "تعذّر تشغيل التلاوة",
+  },
+  followRecitation: { en: "Follow the recitation", ar: "متابعة التلاوة" },
+  followRecitationHint: {
+    en: "Scroll and turn pages along with the reciter",
+    ar: "التمرير وتقليب الصفحات مع القارئ",
+  },
+  nowPlaying: { en: "Now playing", ar: "قيد التشغيل" },
+  playPage: { en: "Play this page", ar: "تشغيل هذه الصفحة" },
+  downloadingPercent: {
+    en: "Downloading {percent}%",
+    ar: "جارٍ التنزيل {percent}٪",
   },
   autoPlayNext: { en: "Continue to next ayah", ar: "الانتقال للآية التالية" },
   autoPlayNextHint: {

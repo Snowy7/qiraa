@@ -12,11 +12,13 @@ export type TajweedRun =
 export type WordText = string | readonly TajweedRun[];
 
 /**
- * Consecutive words of one verse on one mushaf line. `end` is the
+ * Consecutive words of one verse on one mushaf line. `start` is the
+ * position (1-based) of the first word within its verse; `end` is the
  * end-of-ayah marker, present only on the line where the verse finishes.
  */
 export type Segment = readonly [
   verseKey: string,
+  start: number,
   words: readonly WordText[],
   end?: string,
 ];

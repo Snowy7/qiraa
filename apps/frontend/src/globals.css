@@ -64,6 +64,7 @@
     /* Ink for Quran text: a touch warmer than body text. */
     --quran-ink: 24 38% 11%;
     --verse-highlight: 38 92% 55% / 0.14;
+    --reciting-word: 20 88% 46%;
   }
 
   /* Dark: near-black, quiet surfaces, amber accent. */
@@ -97,6 +98,7 @@
 
     --quran-ink: 38 30% 93%;
     --verse-highlight: 38 92% 58% / 0.12;
+    --reciting-word: 40 96% 64%;
   }
 
   * {
@@ -339,8 +341,10 @@
     color: hsl(var(--primary));
   }
 
-  .mushaf-word.is-active {
-    background-color: hsl(var(--verse-highlight));
+  /* The word being recited, toggled from the audio engine (no re-render). */
+  .is-reciting-word {
+    color: hsl(var(--reciting-word));
+    transition: color 0.12s;
   }
 
   /* Translation HTML from the API: footnote markers. */

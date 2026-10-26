@@ -6,6 +6,7 @@ import {
   QURAN_SCRIPTS,
   getChapter,
   juzOfVerse,
+  pageOfVerse,
   parseVerseKey,
   type QuranScript,
 } from "@noor/core";
@@ -90,6 +91,18 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [first, step, goTo]);
 
+  // Turn the page when the recitation moves past what is on screen.
+  const recitingVerse = useAudio((s) =>
+    s.status === "playing" ? s.verseKey : null,
+  );
+  const follow = usePreferences((s) => s.followRecitation);
+  useEffect(() => {
+    if (!follow || !recitingVerse || !index) return;
+    const target = pageOfVerse(index, recitingVerse);
+    if (!pages.includes(target)) goTo(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recitingVerse, follow, index]);
+
   const swipe = useSwipe((direction) =>
     direction === "right" ? nextPage() : previousPage(),
   );
@@ -107,6 +120,7 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
       mode="mushaf"
       onModeChange={switchMode}
       hrefForChapter={(c) => `/mushaf/${index?.chapterPages[c.id - 1][0] ?? 1}`}
+      playFrom={() => firstVerse ?? "1:1"}
     >
       <div
         className="mushaf-stage reader-scope relative mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4 md:pb-6"
@@ -119,11 +133,12 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
         }
         {...swipe}
       >
+        {/* Pages sit directly on the paper-coloured background; a spread gets a spine. */}
         <div dir="rtl" className="flex items-start justify-center gap-6">
-          {pages.map((p) => (
+          {pages.map((p, i) => (
             <div
               key={p}
-              className="rounded-[22px] border border-border/60 bg-card shadow-[0_1px_2px_hsl(26_40%_20%/0.05)] dark:bg-card/60"
+              className={cn(i > 0 && "border-s border-border/70 ps-6")}
             >
               <MushafPage
                 script={script}

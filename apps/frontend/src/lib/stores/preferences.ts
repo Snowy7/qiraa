@@ -28,9 +28,12 @@ export interface Preferences {
   translationId: number;
   /** null follows the UI language's default tafsir. */
   tafsirId: number | null;
-  reciterId: string;
+  /** quran.com audio reciter id. */
+  reciterId: number;
   playbackRate: number;
   autoPlayNext: boolean;
+  /** Keep the ayah being recited in view (scroll / turn the page). */
+  followRecitation: boolean;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -47,6 +50,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   reciterId: DEFAULT_RECITER_ID,
   playbackRate: 1,
   autoPlayNext: true,
+  followRecitation: true,
 };
 
 interface PreferencesStore extends Preferences {
@@ -93,17 +97,18 @@ function sanitize(value: unknown): Partial<Preferences> {
   return result;
 }
 
-const LEGACY_RECITERS: Record<number, string> = {
-  1: "abdulbasit",
-  2: "shuraym",
-  3: "sudais",
-  4: "rifai",
-  5: "shatri",
-  6: "maher",
-  7: "alafasy",
-  8: "minshawi",
-  9: "husary",
-  10: "husary-muallim",
+/** Old everyayah reciter ids → quran.com ids (Maher isn't available; use Alafasy). */
+const LEGACY_RECITERS: Record<number, number> = {
+  1: 2,
+  2: 10,
+  3: 3,
+  4: 5,
+  5: 4,
+  6: 7,
+  7: 7,
+  8: 9,
+  9: 6,
+  10: 12,
 };
 
 /**

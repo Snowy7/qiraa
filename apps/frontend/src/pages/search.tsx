@@ -147,7 +147,7 @@ export default function SearchPage() {
       {chapters.length > 0 && (
         <section className="mt-6">
           <SectionTitle>{t("surahs")}</SectionTitle>
-          <div className="grid gap-1 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
             {chapters.map((chapter) => (
               <Link
                 key={chapter.id}

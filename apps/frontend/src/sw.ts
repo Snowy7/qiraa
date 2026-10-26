@@ -13,9 +13,10 @@ declare let self: ServiceWorkerGlobalScope;
  *  - App shell, UI fonts and the default script's Quran data are precached.
  *  - Other Quran data chunks and page fonts are cached the first time they load
  *    (or all at once from Settings → Offline). They are immutable, so cache-first.
- *  - quran.com content (translations, tafsir) is served from cache and refreshed.
- *  - Recitations are cached once played or downloaded, with range support so
- *    <audio> can seek inside cached files.
+ *  - quran.com content (translations, tafsir, recitation timings) is served
+ *    from cache and refreshed in the background.
+ *  - Surah recitation files are cached when downloaded, with range support so
+ *    <audio> can seek inside them offline.
  * Cache names must match OFFLINE_CACHES in src/lib/offline.ts.
  */
 
@@ -43,7 +44,9 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.origin === "https://api.quran.com",
+  ({ url }) =>
+    url.origin === "https://api.quran.com" ||
+    url.origin === "https://api.qurancdn.com",
   new StaleWhileRevalidate({
     cacheName: "quran-api",
     plugins: [
@@ -54,7 +57,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.hostname === "everyayah.com",
+  ({ url }) => url.hostname === "download.quranicaudio.com",
   new CacheFirst({
     cacheName: "quran-audio",
     plugins: [

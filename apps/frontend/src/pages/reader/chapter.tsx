@@ -72,6 +72,7 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
   );
 
   const visibleVerse = useVisibleVerse(chapter.id, !!verses);
+  useFollowRecitation(chapter.id, !!verses);
   useScrollToVerse(targetVerse, !!verses);
 
   const switchMode = async (mode: ReadingMode) => {
@@ -95,6 +96,7 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
       mode="verses"
       onModeChange={switchMode}
       hrefForChapter={(c) => `/quran/${c.id}`}
+      playFrom={() => toVerseKey(chapter.id, visibleVerse.current ?? 1)}
     >
       <div
         className="reader-scope mx-auto max-w-3xl px-2 pb-24 pt-4 sm:px-6 md:pt-8"
@@ -122,7 +124,9 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             <Button
               onClick={() =>
-                useAudio.getState().play(toVerseKey(chapter.id, 1))
+                useAudio
+                  .getState()
+                  .play(toVerseKey(chapter.id, 1), { fromStart: true })
               }
             >
               <Play className="fill-current" /> {t("playSurah")}
@@ -262,4 +266,28 @@ function useScrollToVerse(verse: number | null, ready: boolean) {
     const timers = [150, 500].map((delay) => setTimeout(scroll, delay));
     return () => timers.forEach(clearTimeout);
   }, [verse, ready]);
+}
+
+/**
+ * Keeps the ayah being recited in view, and follows the recitation into the
+ * next surah, while "follow the recitation" is on.
+ */
+function useFollowRecitation(chapterId: number, ready: boolean) {
+  const navigate = useNavigate();
+  const verseKey = useAudio((s) =>
+    s.status === "playing" ? s.verseKey : null,
+  );
+  const follow = usePreferences((s) => s.followRecitation);
+
+  useEffect(() => {
+    if (!follow || !ready || !verseKey) return;
+    const [chapter, verse] = verseKey.split(":").map(Number);
+    if (chapter !== chapterId) {
+      navigate(`/quran/${chapter}?verse=${verse}`, { replace: true });
+      return;
+    }
+    document
+      .getElementById(`ayah-${verse}`)
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [verseKey, follow, ready, chapterId, navigate]);
 }

@@ -93,7 +93,7 @@ function SurahGrid({
     );
   }
   return (
-    <div className="grid gap-2 md:grid-cols-2 md:gap-3 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3 xl:grid-cols-3">
       {chapters.map((chapter) => (
         <Link
           key={chapter.id}

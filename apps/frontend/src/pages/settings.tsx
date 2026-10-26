@@ -51,7 +51,7 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={t("settings")} width="default" />
-      <Page className="grid gap-6 pb-10 lg:grid-cols-2 lg:items-start">
+      <Page className="grid grid-cols-1 gap-6 pb-10 lg:grid-cols-2 lg:items-start">
         <div className="space-y-6">
           <Section title={t("appearance")}>
             <div className="space-y-5">
@@ -147,7 +147,9 @@ function DownloadRow({
         <p className="font-semibold">{label}</p>
         <p className="text-sm text-muted-foreground">
           {job?.status === "running"
-            ? t("downloading", { done: job.done, total: job.total })
+            ? t("downloadingPercent", {
+                percent: Math.floor((job.done / job.total) * 100),
+              })
             : job?.status === "failed"
               ? t("downloadFailed")
               : hint}

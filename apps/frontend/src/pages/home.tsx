@@ -88,7 +88,7 @@ export default function HomePage() {
         </Button>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-12">
         <PrayerHero className="md:col-span-2 md:min-h-[300px] xl:col-span-7 xl:row-span-2" />
         <ContinueReading className="xl:col-span-5" />
         <MemorizeCard className="xl:col-span-5" />
