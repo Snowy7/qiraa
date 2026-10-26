@@ -89,25 +89,13 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
   const recitingVerse = useRecitingVerse();
   useEffect(() => {
     if (!recitingVerse || !index) return;
-    const selector = `[data-word="${recitingVerse}:1"]`;
-    const word = document.querySelector(selector);
-    if (word) {
-      revealWord(word);
-      return;
-    }
     const slot = document.getElementById(
       pageSlotId(pageOfVerse(index, recitingVerse)),
     );
     if (!slot) return;
-    slot.scrollIntoView();
-    const observer = new MutationObserver(() => {
-      const drawn = slot.querySelector(selector);
-      if (!drawn) return;
-      observer.disconnect();
-      revealWord(drawn);
-    });
-    observer.observe(slot, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    if (!slot.querySelector(`[data-word="${recitingVerse}:1"]`))
+      slot.scrollIntoView();
+    return revealVerse(slot, recitingVerse);
   }, [recitingVerse, index]);
 
   return (
@@ -205,10 +193,9 @@ function PagesReader({ page, script }: { page: number; script: QuranScript }) {
       goTo(target);
       return;
     }
-    const word = document.querySelector(`[data-word="${recitingVerse}:1"]`);
-    if (word) revealWord(word);
+    if (stage.current) return revealVerse(stage.current, recitingVerse);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recitingVerse, index]);
+  }, [recitingVerse, index, first]);
 
   const swipe = useSwipe((direction) =>
     direction === "right" ? nextPage() : previousPage(),
@@ -348,6 +335,27 @@ function useMushafFrame(
     hrefForChapter: (c) => `/mushaf/${chapterPageRange(script.id, c.id)[0]}`,
     playFrom: () => firstVerse ?? "1:1",
   };
+}
+
+/**
+ * Brings an ayah's first word into view once `container` has drawn it
+ * (a page draws its words when its data and font arrive). Returns a cleanup.
+ */
+function revealVerse(container: Element, verseKey: string) {
+  const selector = `[data-word="${verseKey}:1"]`;
+  const word = container.querySelector(selector);
+  if (word) {
+    revealWord(word);
+    return;
+  }
+  const observer = new MutationObserver(() => {
+    const drawn = container.querySelector(selector);
+    if (!drawn) return;
+    observer.disconnect();
+    revealWord(drawn);
+  });
+  observer.observe(container, { childList: true, subtree: true });
+  return () => observer.disconnect();
 }
 
 /**

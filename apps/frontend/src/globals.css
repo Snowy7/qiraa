@@ -335,7 +335,10 @@
     height: 100%;
   }
 
-  /* Flowing text: one justified block per page, as wide as the stage. */
+  /*
+   * Flowing text: one justified block per page, as wide as the stage. The
+   * opening pages (`data-printed`) keep their short lines, fitted to it.
+   */
   .mushaf-stage[data-flow] .mushaf-slot {
     width: auto;
     height: auto;
@@ -345,15 +348,27 @@
     height: auto;
   }
 
-  .mushaf-stage[data-flow] .mushaf-lines {
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-lines {
     display: block;
     text-align: justify;
     text-align-last: start;
   }
 
-  .mushaf-stage[data-flow] .mushaf-line {
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-line {
     display: inline;
     white-space: normal;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-page[data-printed] .mushaf-line {
+    max-width: 100%;
+  }
+
+  .mushaf-nbsp {
+    display: none;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-nbsp {
+    display: inline;
   }
 
   /* A surah header (frame and Bismillah) fills exactly two line slots. */
