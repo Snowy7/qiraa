@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@template/ui";
 import {
@@ -12,50 +19,141 @@ import {
   type QuranScript,
 } from "@qiraa/core";
 import { MushafPage } from "@/components/quran/mushaf-page";
+import { MushafScroll, pageSlotId } from "@/components/quran/mushaf-scroll";
 import { ReaderLayout } from "@/components/reader/reader-layout";
 import NotFoundPage from "@/pages/not-found";
 import { saveReadingPosition } from "@/lib/db/reading-history";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { useI18n } from "@/lib/i18n";
-import { queryClient } from "@/lib/query-client";
-import { pageQuery, useScriptIndex } from "@/lib/quran/data";
+import { prefetchPages, useScriptIndex } from "@/lib/quran/data";
+import { preloadPageFont } from "@/lib/quran/fonts";
 import { useAudio } from "@/lib/stores/audio";
-import { usePreferences, type ReadingMode } from "@/lib/stores/preferences";
+import { usePreferences } from "@/lib/stores/preferences";
 import { useReaderUi } from "@/lib/stores/reader-ui";
 import { cn } from "@/lib/utils";
 
 export default function MushafReaderPage() {
   const page = Number(useParams().page);
   const script = QURAN_SCRIPTS[usePreferences((s) => s.script)];
+  const view = usePreferences((s) => s.mushafView);
   if (!Number.isInteger(page) || page < 1 || page > script.pageCount)
     return <NotFoundPage />;
-  return <MushafReader page={page} script={script} />;
+  return view === "scroll" ? (
+    <ScrollReader page={page} script={script} />
+  ) : (
+    <PagesReader page={page} script={script} />
+  );
 }
 
-function MushafReader({ page, script }: { page: number; script: QuranScript }) {
+/** Location state of the URL updates made while scrolling. */
+const SCROLLED = "mushaf-scrolled";
+
+/**
+ * Every page of the script in one vertical scroll. The URL follows the page
+ * being read (replaced, once scrolling settles), so reopening or sharing
+ * lands on the same page.
+ */
+function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const index = useScriptIndex(script.id).data;
+  const quranTextScale = usePreferences((s) => s.quranTextScale);
+  const selectedVerse = useSelectedVerse();
+  const [current, setCurrent] = useState(page);
+  const frame = useMushafFrame(script, current);
+
+  // Links, surah picks and script switches go to their page; the URL
+  // updates made by scrolling are already there.
+  useLayoutEffect(() => {
+    if (location.state === SCROLLED) return;
+    setCurrent(page);
+    document.getElementById(pageSlotId(page))?.scrollIntoView();
+  }, [location.key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced: browsers limit how often history can be replaced.
+  useEffect(() => {
+    if (current === page) return;
+    const timer = setTimeout(
+      () =>
+        navigate(`/mushaf/${current}`, { replace: true, state: SCROLLED }),
+      400,
+    );
+    return () => clearTimeout(timer);
+  }, [current, page, navigate]);
+
+  // Keep the ayah being recited in view: centre it when it's near an edge.
+  // A page that isn't rendered yet is jumped to first, and the ayah placed
+  // once the page has drawn it.
+  const recitingVerse = useRecitingVerse();
+  useEffect(() => {
+    if (!recitingVerse || !index) return;
+    const selector = `[data-word="${recitingVerse}:1"]`;
+    const reveal = (word: Element) => {
+      const { top, bottom } = word.getBoundingClientRect();
+      if (top < window.innerHeight * 0.15 || bottom > window.innerHeight * 0.7)
+        word.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+    const word = document.querySelector(selector);
+    if (word) {
+      reveal(word);
+      return;
+    }
+    const slot = document.getElementById(
+      pageSlotId(pageOfVerse(index, recitingVerse)),
+    );
+    if (!slot) return;
+    slot.scrollIntoView();
+    const observer = new MutationObserver(() => {
+      const drawn = slot.querySelector(selector);
+      if (!drawn) return;
+      observer.disconnect();
+      reveal(drawn);
+    });
+    observer.observe(slot, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [recitingVerse, index]);
+
+  return (
+    <ReaderLayout {...frame}>
+      <div
+        className="mushaf-stage reader-scope mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4"
+        style={stageStyle(script, quranTextScale, 1)}
+      >
+        <MushafScroll
+          key={script.id}
+          script={script}
+          initialPage={current}
+          onPageChange={setCurrent}
+          selectedVerse={selectedVerse}
+        />
+      </div>
+    </ReaderLayout>
+  );
+}
+
+/**
+ * Page by page, turned with swipes, arrows or keys. Wide landscape screens
+ * show an open book (two facing pages) at the default text size.
+ */
+function PagesReader({ page, script }: { page: number; script: QuranScript }) {
   const { t, n } = useI18n();
   const navigate = useNavigate();
   const index = useScriptIndex(script.id).data;
   const quranTextScale = usePreferences((s) => s.quranTextScale);
-  const setPrefs = usePreferences((s) => s.set);
-  const { verseKey: sheetVerse, sheet } = useReaderUi();
-  const wordVerse = useReaderUi((s) => s.word?.verseKey);
-  const selectedVerse = wordVerse ?? (sheet === "actions" ? sheetVerse : null);
+  const selectedVerse = useSelectedVerse();
   const playerOpen = useAudio((s) => s.verseKey !== null);
 
-  // Wide landscape screens show an open book: two facing pages.
-  const spread = useMediaQuery(
-    "(min-width: 1100px) and (orientation: landscape)",
-  );
+  // Half a spread is already as wide as a page can be, so text larger than
+  // the default shows single pages instead.
+  const spread =
+    useMediaQuery("(min-width: 1100px) and (orientation: landscape)") &&
+    quranTextScale <= 1;
   const first = spread && page % 2 === 0 ? page - 1 : page;
   const pages = spread
     ? [first, first + 1].filter((p) => p <= script.pageCount)
     : [page];
   const step = pages.length;
-
-  const firstVerse = index?.pageFirstVerse[first - 1];
-  const ref = firstVerse ? parseVerseKey(firstVerse) : null;
-  const chapter = getChapter(ref?.chapter ?? 1)!;
+  const frame = useMushafFrame(script, first);
 
   const goTo = useCallback(
     (target: number) => {
@@ -67,16 +165,15 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
   const nextPage = () => goTo(first + step);
   const previousPage = () => goTo(first - step);
 
-  // Remember the position and warm the neighbouring pages (data and fonts).
+  // Warm the neighbouring pages (data and fonts); each turn starts at the top.
   useEffect(() => {
-    if (ref)
-      saveReadingPosition(ref.chapter, ref.verse, "mushaf").catch(() => {});
-    for (const p of [first - step, first + step, first + step + 1]) {
-      if (p >= 1 && p <= script.pageCount)
-        queryClient.prefetchQuery(pageQuery(script.id, p));
-    }
+    const neighbours = [first - step, first + step, first + step + 1].filter(
+      (p) => p >= 1 && p <= script.pageCount,
+    );
+    prefetchPages(script.id, neighbours);
+    for (const p of neighbours) preloadPageFont(script, p);
     window.scrollTo({ top: 0 });
-  }, [first, step, script.id, script.pageCount, ref?.chapter, ref?.verse]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [first, step, script]);
 
   // A mushaf opens right-to-left: the left arrow turns to the next page.
   useEffect(() => {
@@ -95,45 +192,23 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
   }, [first, step, goTo]);
 
   // Turn the page when the recitation moves past what is on screen.
-  const recitingVerse = useAudio((s) =>
-    s.status === "playing" ? s.verseKey : null,
-  );
-  const follow = usePreferences((s) => s.followRecitation);
+  const recitingVerse = useRecitingVerse();
   useEffect(() => {
-    if (!follow || !recitingVerse || !index) return;
+    if (!recitingVerse || !index) return;
     const target = pageOfVerse(index, recitingVerse);
     if (!pages.includes(target)) goTo(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recitingVerse, follow, index]);
+  }, [recitingVerse, index]);
 
   const swipe = useSwipe((direction) =>
     direction === "right" ? nextPage() : previousPage(),
   );
 
-  const switchMode = (mode: ReadingMode) => {
-    setPrefs({ readingMode: mode });
-    if (mode === "verses" && ref)
-      navigate(`/quran/${ref.chapter}?verse=${ref.verse}`);
-  };
-
   return (
-    <ReaderLayout
-      chapter={chapter}
-      subtitle={`${t("pageNumber", { n: first })} · ${t("juzNumber", { n: firstVerse ? juzOfVerse(firstVerse) : 1 })}`}
-      mode="mushaf"
-      onModeChange={switchMode}
-      hrefForChapter={(c) => `/mushaf/${chapterPageRange(script.id, c.id)[0]}`}
-      playFrom={() => firstVerse ?? "1:1"}
-    >
+    <ReaderLayout {...frame}>
       <div
         className="mushaf-stage reader-scope relative mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4 md:px-16 md:pb-6"
-        style={
-          {
-            "--spread": step,
-            "--spread-gap": "1.5rem",
-            "--quran-scale": quranTextScale,
-          } as React.CSSProperties
-        }
+        style={stageStyle(script, quranTextScale, step)}
         {...swipe}
       >
         {/* Pages sit directly on the paper-coloured background; a spread gets a spine. */}
@@ -215,6 +290,78 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
       </div>
     </ReaderLayout>
   );
+}
+
+/** CSS variables a `.mushaf-stage` gives its pages (see globals.css). */
+function stageStyle(script: QuranScript, scale: number, spread: number) {
+  return {
+    "--line-em": script.lineWidthEm,
+    "--mushaf-lh": script.lineHeight * 0.88,
+    "--quran-scale": scale,
+    "--spread": spread,
+    "--spread-gap": "1.5rem",
+  } as React.CSSProperties;
+}
+
+/**
+ * The reader frame for the page being read (its surah, page and juz, and
+ * where play starts). Also saves the page as the reading position once the
+ * reader stays on it.
+ */
+function useMushafFrame(
+  script: QuranScript,
+  page: number,
+): Omit<ComponentProps<typeof ReaderLayout>, "children"> {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const setPrefs = usePreferences((s) => s.set);
+  const index = useScriptIndex(script.id).data;
+  const firstVerse = index?.pageFirstVerse[page - 1];
+  const ref = firstVerse ? parseVerseKey(firstVerse) : null;
+
+  useEffect(() => {
+    const position = firstVerse ? parseVerseKey(firstVerse) : null;
+    if (!position) return;
+    const timer = setTimeout(
+      () =>
+        saveReadingPosition(position.chapter, position.verse, "mushaf").catch(
+          () => {},
+        ),
+      1000,
+    );
+    return () => clearTimeout(timer);
+  }, [firstVerse]);
+
+  return {
+    chapter: getChapter(ref?.chapter ?? 1)!,
+    subtitle: `${t("pageNumber", { n: page })} · ${t("juzNumber", { n: firstVerse ? juzOfVerse(firstVerse) : 1 })}`,
+    mode: "mushaf",
+    onModeChange: (mode) => {
+      setPrefs({ readingMode: mode });
+      if (mode === "verses" && ref)
+        navigate(`/quran/${ref.chapter}?verse=${ref.verse}`);
+    },
+    hrefForChapter: (c) => `/mushaf/${chapterPageRange(script.id, c.id)[0]}`,
+    playFrom: () => firstVerse ?? "1:1",
+  };
+}
+
+/** The ayah to emphasise: the one in the word popover or the actions sheet. */
+function useSelectedVerse() {
+  const wordVerse = useReaderUi((s) => s.word?.verseKey);
+  const sheetVerse = useReaderUi((s) =>
+    s.sheet === "actions" ? s.verseKey : null,
+  );
+  return wordVerse ?? sheetVerse;
+}
+
+/** The ayah being recited while "follow the recitation" is on, else null. */
+function useRecitingVerse() {
+  const verseKey = useAudio((s) =>
+    s.status === "playing" ? s.verseKey : null,
+  );
+  const follow = usePreferences((s) => s.followRecitation);
+  return follow ? verseKey : null;
 }
 
 /** Horizontal swipe detection for page turns (ignores mostly-vertical drags). */

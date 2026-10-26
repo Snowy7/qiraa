@@ -40,7 +40,8 @@
     --popover-foreground: 26 33% 13%;
 
     --primary: 28 64% 33%;
-    --primary-foreground: 40 60% 98%;
+    /* Warm off-white rather than white, easier on the eye (5.8:1 on primary). */
+    --primary-foreground: 40 50% 94%;
 
     --secondary: 37 40% 92%;
     --secondary-foreground: 26 33% 16%;
@@ -53,7 +54,7 @@
     --accent-foreground: 26 40% 12%;
 
     --destructive: 2 70% 48%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 40 50% 94%;
 
     --border: 35 30% 86%;
     --input: 35 30% 84%;
@@ -70,18 +71,19 @@
   /* Dark: near-black, quiet surfaces, amber accent. */
   .dark {
     --background: 30 8% 5%;
-    --foreground: 36 22% 92%;
+    /* Text is a warm off-white, a step down from white to ease glare (15:1). */
+    --foreground: 36 20% 89%;
 
     --card: 30 6% 8.5%;
-    --card-foreground: 36 22% 92%;
+    --card-foreground: 36 20% 89%;
     --popover: 30 6% 10%;
-    --popover-foreground: 36 22% 92%;
+    --popover-foreground: 36 20% 89%;
 
     --primary: 35 84% 62%;
     --primary-foreground: 26 40% 8%;
 
     --secondary: 30 6% 13%;
-    --secondary-foreground: 36 22% 92%;
+    --secondary-foreground: 36 20% 89%;
 
     --muted: 30 6% 13%;
     --muted-foreground: 32 9% 60%;
@@ -90,13 +92,14 @@
     --accent-foreground: 26 40% 8%;
 
     --destructive: 2 72% 58%;
-    --destructive-foreground: 0 0% 100%;
+    /* Dark ink: white on this light red falls below 4.5:1. */
+    --destructive-foreground: 26 40% 8%;
 
     --border: 30 6% 16%;
     --input: 30 6% 20%;
     --ring: 35 84% 62%;
 
-    --quran-ink: 38 30% 93%;
+    --quran-ink: 38 28% 90%;
     --verse-highlight: 38 92% 58% / 0.12;
     --reciting-word: 40 96% 64%;
   }
@@ -286,25 +289,45 @@
   }
 
   /*
-   * Mushaf pages. Font-size is the largest that fits: the stage width (split
-   * across a two-page spread), the viewport height from tablet up, and the
-   * reader's size preference. Lines are justified to `--line-em` em, the
-   * width of a full printed line in that script.
+   * Mushaf pages. Lines are justified to `--line-em` em, the width of a full
+   * printed line in the script, so only the font-size changes, and a page
+   * is never wider than the stage (split across a two-page spread):
+   *  - scroll view: a reading-width page (42rem) times the text size;
+   *  - pages view: the size that fits the screen (width, and height from
+   *    tablet up) times the text size, so a larger size scrolls the page.
+   * `.mushaf-stage` sets `--line-em`, `--mushaf-lh`, `--spread` and
+   * `--quran-scale`.
    */
   .mushaf-stage {
     container-type: inline-size;
   }
 
-  .mushaf-page {
+  .mushaf-page,
+  .mushaf-slot {
+    /* Side padding of a page in em, both sides together. */
+    --pad-em: 1.6;
     --fit-width: calc(
-      (100cqi - var(--spread-gap, 0px)) / var(--spread, 1) /
-        (var(--line-em) + 1.6)
+      (100cqi - var(--spread-gap, 0px) * (var(--spread, 1) - 1)) /
+        var(--spread, 1) / (var(--line-em) + var(--pad-em))
     );
-    --fit-height: 100vh;
-    --size-cap: calc(var(--quran-scale, 1) * 2.4rem);
-    font-size: min(var(--fit-width), var(--fit-height), var(--size-cap));
     line-height: var(--mushaf-lh);
-    padding: 0.8em 0.8em 0.6em;
+  }
+
+  /* Phones: slimmer margins leave more of the width to the text. */
+  @media (max-width: 639px) {
+    .mushaf-page,
+    .mushaf-slot {
+      --pad-em: 1;
+    }
+  }
+
+  .mushaf-page {
+    --fit-height: 100vh;
+    font-size: min(
+      var(--fit-width),
+      calc(min(var(--fit-width), var(--fit-height)) * var(--quran-scale, 1))
+    );
+    padding: 0.8em calc(var(--pad-em) * 0.5em) 0.6em;
   }
 
   @media (min-width: 768px) {
@@ -313,6 +336,39 @@
         (100dvh - var(--reader-chrome, 8rem)) / (17.2 * var(--mushaf-lh))
       );
     }
+  }
+
+  /*
+   * A page's place in the scroll view. Every slot is as tall as the fullest
+   * page (16 line slots; a surah header takes two), so pages that haven't
+   * rendered yet hold their exact space and the scroll position maps to a
+   * page by arithmetic.
+   */
+  .mushaf-slot {
+    font-size: min(
+      var(--fit-width),
+      calc(
+        42rem * var(--quran-scale, 1) / (var(--line-em) + var(--pad-em))
+      )
+    );
+    width: calc((var(--line-em) + var(--pad-em)) * 1em);
+    height: calc((16 * var(--mushaf-lh) + 3) * 1em);
+    margin-inline: auto;
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+    scroll-margin-top: calc(4rem + env(safe-area-inset-top));
+  }
+
+  .mushaf-slot > .mushaf-page {
+    font-size: inherit;
+    height: 100%;
+  }
+
+  /* A surah header (frame and Bismillah) fills exactly two line slots. */
+  .mushaf-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: calc(2 * var(--mushaf-lh) * 1em);
   }
 
   .mushaf-line {
