@@ -40,7 +40,8 @@
     --popover-foreground: 26 33% 13%;
 
     --primary: 28 64% 33%;
-    --primary-foreground: 40 60% 98%;
+    /* Warm off-white rather than white, easier on the eye (5.8:1 on primary). */
+    --primary-foreground: 40 50% 94%;
 
     --secondary: 37 40% 92%;
     --secondary-foreground: 26 33% 16%;
@@ -53,7 +54,7 @@
     --accent-foreground: 26 40% 12%;
 
     --destructive: 2 70% 48%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 40 50% 94%;
 
     --border: 35 30% 86%;
     --input: 35 30% 84%;
@@ -70,18 +71,19 @@
   /* Dark: near-black, quiet surfaces, amber accent. */
   .dark {
     --background: 30 8% 5%;
-    --foreground: 36 22% 92%;
+    /* Text is a warm off-white, a step down from white to ease glare (15:1). */
+    --foreground: 36 20% 89%;
 
     --card: 30 6% 8.5%;
-    --card-foreground: 36 22% 92%;
+    --card-foreground: 36 20% 89%;
     --popover: 30 6% 10%;
-    --popover-foreground: 36 22% 92%;
+    --popover-foreground: 36 20% 89%;
 
     --primary: 35 84% 62%;
     --primary-foreground: 26 40% 8%;
 
     --secondary: 30 6% 13%;
-    --secondary-foreground: 36 22% 92%;
+    --secondary-foreground: 36 20% 89%;
 
     --muted: 30 6% 13%;
     --muted-foreground: 32 9% 60%;
@@ -90,13 +92,14 @@
     --accent-foreground: 26 40% 8%;
 
     --destructive: 2 72% 58%;
-    --destructive-foreground: 0 0% 100%;
+    /* Dark ink: white on this light red falls below 4.5:1. */
+    --destructive-foreground: 26 40% 8%;
 
     --border: 30 6% 16%;
     --input: 30 6% 20%;
     --ring: 35 84% 62%;
 
-    --quran-ink: 38 30% 93%;
+    --quran-ink: 38 28% 90%;
     --verse-highlight: 38 92% 58% / 0.12;
     --reciting-word: 40 96% 64%;
   }

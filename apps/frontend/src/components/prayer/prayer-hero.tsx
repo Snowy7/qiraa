@@ -105,8 +105,8 @@ export function PrayerHero({
                   className={cn(
                     "flex flex-col items-center rounded-2xl px-1 py-2.5 text-center transition-colors",
                     isNext
-                      ? "bg-card/85 shadow-sm dark:bg-white/10"
-                      : "bg-card/40 dark:bg-white/[0.04]",
+                      ? "bg-card/85 shadow-sm dark:bg-foreground/10"
+                      : "bg-card/40 dark:bg-foreground/[0.04]",
                   )}
                 >
                   <span

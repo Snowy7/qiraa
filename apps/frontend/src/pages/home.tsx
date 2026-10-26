@@ -135,9 +135,9 @@ function ContinueReading({ className }: { className?: string }) {
         <SurahName chapter={chapter.id} className="text-5xl opacity-90" />
       </div>
       <div className="relative mt-6 flex items-center gap-3">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-primary-foreground/20">
           <div
-            className="h-full rounded-full bg-white/85"
+            className="h-full rounded-full bg-primary-foreground/85"
             style={{ width: `${Math.max(progress, 0.02) * 100}%` }}
           />
         </div>
