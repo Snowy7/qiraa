@@ -29,9 +29,9 @@ interface MushafPageProps {
 
 /**
  * One page of the printed mushaf. Each line is justified to the script's
- * line width (in em), so lines match the print exactly at any size; the
- * font-size itself comes from `.mushaf-page` in globals.css, inside a
- * `.mushaf-stage` that sets the script's `--line-em` and `--mushaf-lh`.
+ * line width (in em), so lines match the print exactly at any size; a stage
+ * whose text is too large for that (`data-flow`) lets the words flow
+ * instead. Sizes come from the enclosing `.mushaf-stage` (globals.css).
  */
 export const MushafPage = memo(function MushafPage({
   script,
@@ -58,7 +58,10 @@ export const MushafPage = memo(function MushafPage({
       aria-label={`Page ${page}`}
       className="mushaf-page quran-text mx-auto flex flex-col"
     >
-      <div ref={linesRef} className="flex flex-1 flex-col justify-center">
+      <div
+        ref={linesRef}
+        className="mushaf-lines flex flex-1 flex-col justify-center"
+      >
         {!ready
           ? Array.from({ length: 15 }, (_, i) => (
               <div key={i} className="mushaf-line">
@@ -120,7 +123,15 @@ export const MushafPage = memo(function MushafPage({
                           </span>,
                         );
                       }
-                      return spans;
+                      // Spaces only matter when the words flow (flex
+                      // lines ignore them); an ayah's end marker stays
+                      // with its last word.
+                      return spans.flatMap((span, i) => [
+                        span,
+                        i === words.length - 1 && end !== undefined
+                          ? "\u00a0"
+                          : " ",
+                      ]);
                     })}
                   </div>
                 </Fragment>

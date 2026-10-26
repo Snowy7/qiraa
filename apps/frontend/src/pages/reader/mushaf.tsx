@@ -18,6 +18,7 @@ import {
   parseVerseKey,
   type QuranScript,
 } from "@qiraa/core";
+import { stageStyle, useMushafLayout } from "@/components/quran/mushaf-layout";
 import { MushafPage } from "@/components/quran/mushaf-page";
 import { MushafScroll, pageSlotId } from "@/components/quran/mushaf-scroll";
 import { ReaderLayout } from "@/components/reader/reader-layout";
@@ -61,6 +62,8 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
   const selectedVerse = useSelectedVerse();
   const [current, setCurrent] = useState(page);
   const frame = useMushafFrame(script, current);
+  const stage = useRef<HTMLDivElement>(null);
+  const layout = useMushafLayout(stage, script, "scroll", 1, quranTextScale);
 
   // Links, surah picks and script switches go to their page; the URL
   // updates made by scrolling are already there.
@@ -74,8 +77,7 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
   useEffect(() => {
     if (current === page) return;
     const timer = setTimeout(
-      () =>
-        navigate(`/mushaf/${current}`, { replace: true, state: SCROLLED }),
+      () => navigate(`/mushaf/${current}`, { replace: true, state: SCROLLED }),
       400,
     );
     return () => clearTimeout(timer);
@@ -88,14 +90,9 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
   useEffect(() => {
     if (!recitingVerse || !index) return;
     const selector = `[data-word="${recitingVerse}:1"]`;
-    const reveal = (word: Element) => {
-      const { top, bottom } = word.getBoundingClientRect();
-      if (top < window.innerHeight * 0.15 || bottom > window.innerHeight * 0.7)
-        word.scrollIntoView({ block: "center", behavior: "smooth" });
-    };
     const word = document.querySelector(selector);
     if (word) {
-      reveal(word);
+      revealWord(word);
       return;
     }
     const slot = document.getElementById(
@@ -107,7 +104,7 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
       const drawn = slot.querySelector(selector);
       if (!drawn) return;
       observer.disconnect();
-      reveal(drawn);
+      revealWord(drawn);
     });
     observer.observe(slot, { childList: true, subtree: true });
     return () => observer.disconnect();
@@ -116,16 +113,21 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
   return (
     <ReaderLayout {...frame}>
       <div
+        ref={stage}
         className="mushaf-stage reader-scope mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4"
-        style={stageStyle(script, quranTextScale, 1)}
+        style={stageStyle(script, layout)}
+        data-flow={layout?.flow || undefined}
       >
-        <MushafScroll
-          key={script.id}
-          script={script}
-          initialPage={current}
-          onPageChange={setCurrent}
-          selectedVerse={selectedVerse}
-        />
+        {layout && (
+          <MushafScroll
+            key={script.id}
+            script={script}
+            layout={layout}
+            initialPage={current}
+            onPageChange={setCurrent}
+            selectedVerse={selectedVerse}
+          />
+        )}
       </div>
     </ReaderLayout>
   );
@@ -154,6 +156,8 @@ function PagesReader({ page, script }: { page: number; script: QuranScript }) {
     : [page];
   const step = pages.length;
   const frame = useMushafFrame(script, first);
+  const stage = useRef<HTMLDivElement>(null);
+  const layout = useMushafLayout(stage, script, "pages", step, quranTextScale);
 
   const goTo = useCallback(
     (target: number) => {
@@ -191,12 +195,18 @@ function PagesReader({ page, script }: { page: number; script: QuranScript }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [first, step, goTo]);
 
-  // Turn the page when the recitation moves past what is on screen.
+  // Turn the page when the recitation moves past what is on screen, and
+  // keep the ayah in view on a page taller than the screen.
   const recitingVerse = useRecitingVerse();
   useEffect(() => {
     if (!recitingVerse || !index) return;
     const target = pageOfVerse(index, recitingVerse);
-    if (!pages.includes(target)) goTo(target);
+    if (!pages.includes(target)) {
+      goTo(target);
+      return;
+    }
+    const word = document.querySelector(`[data-word="${recitingVerse}:1"]`);
+    if (word) revealWord(word);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recitingVerse, index]);
 
@@ -207,8 +217,10 @@ function PagesReader({ page, script }: { page: number; script: QuranScript }) {
   return (
     <ReaderLayout {...frame}>
       <div
+        ref={stage}
         className="mushaf-stage reader-scope relative mx-auto max-w-[1500px] px-1 pb-28 pt-3 sm:px-4 md:px-16 md:pb-6"
-        style={stageStyle(script, quranTextScale, step)}
+        style={stageStyle(script, layout)}
+        data-flow={layout?.flow || undefined}
         {...swipe}
       >
         {/* Pages sit directly on the paper-coloured background; a spread gets a spine. */}
@@ -219,7 +231,10 @@ function PagesReader({ page, script }: { page: number; script: QuranScript }) {
           {pages.map((p, i) => (
             <div
               key={p}
-              className={cn(i > 0 && "border-s border-border/70 ps-6")}
+              className={cn(
+                "min-w-0",
+                i > 0 && "border-s border-border/70 ps-6",
+              )}
             >
               <MushafPage
                 script={script}
@@ -292,17 +307,6 @@ function PagesReader({ page, script }: { page: number; script: QuranScript }) {
   );
 }
 
-/** CSS variables a `.mushaf-stage` gives its pages (see globals.css). */
-function stageStyle(script: QuranScript, scale: number, spread: number) {
-  return {
-    "--line-em": script.lineWidthEm,
-    "--mushaf-lh": script.lineHeight * 0.88,
-    "--quran-scale": scale,
-    "--spread": spread,
-    "--spread-gap": "1.5rem",
-  } as React.CSSProperties;
-}
-
 /**
  * The reader frame for the page being read (its surah, page and juz, and
  * where play starts). Also saves the page as the reading position once the
@@ -346,13 +350,22 @@ function useMushafFrame(
   };
 }
 
-/** The ayah to emphasise: the one in the word popover or the actions sheet. */
+/**
+ * Centres a word being recited when it's low on the screen or hidden above
+ * it (behind the reader's header).
+ */
+function revealWord(word: Element) {
+  const { top, bottom } = word.getBoundingClientRect();
+  if (top < 96 || bottom > window.innerHeight * 0.7)
+    word.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+/**
+ * The ayah to emphasise: the one whose actions are open. (A tapped word is
+ * highlighted on its own by the word popover.)
+ */
 function useSelectedVerse() {
-  const wordVerse = useReaderUi((s) => s.word?.verseKey);
-  const sheetVerse = useReaderUi((s) =>
-    s.sheet === "actions" ? s.verseKey : null,
-  );
-  return wordVerse ?? sheetVerse;
+  return useReaderUi((s) => (s.sheet === "actions" ? s.verseKey : null));
 }
 
 /** The ayah being recited while "follow the recitation" is on, else null. */
