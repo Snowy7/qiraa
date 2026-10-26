@@ -1,8 +1,8 @@
 import type { ComponentType, SVGProps } from "react";
 import { NavLink } from "react-router-dom";
 import { Bookmark, Brain, House, Search, Settings } from "lucide-react";
-import type { MessageKey } from "@noor/core";
-import { MosqueIcon, NoorMark, QuranIcon } from "@/components/icons";
+import type { MessageKey } from "@qiraa/core";
+import { MosqueIcon, BrandMark, QuranIcon } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +91,7 @@ export function Sidebar({
           wide && "xl:justify-start xl:px-3",
         )}
       >
-        <NoorMark className="size-9" />
+        <BrandMark className="size-9" />
         <span
           className={cn(
             "hidden text-xl font-bold tracking-tight text-foreground",

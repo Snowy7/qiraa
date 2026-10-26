@@ -10,8 +10,8 @@ import {
   parseVerseKey,
   toVerseKey,
   type MessageKey,
-} from "@noor/core";
-import { MosqueSkyline, NoorMark } from "@/components/icons";
+} from "@qiraa/core";
+import { MosqueSkyline, BrandMark } from "@/components/icons";
 import { Page, SectionTitle } from "@/components/page";
 import { PrayerHero } from "@/components/prayer/prayer-hero";
 import { SurahName } from "@/components/quran/ornaments";
@@ -61,7 +61,7 @@ export default function HomePage() {
   return (
     <Page width="wide" className="pb-6">
       <header className="flex items-center gap-3 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] md:pb-8 md:pt-10">
-        <NoorMark className="size-9 text-primary md:hidden" />
+        <BrandMark className="size-9 text-primary md:hidden" />
         <div className="min-w-0 flex-1">
           <p className="hidden text-sm font-medium text-muted-foreground md:block">
             {t("appName")}

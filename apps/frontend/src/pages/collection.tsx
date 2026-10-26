@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@template/ui";
-import { QURAN_SCRIPTS, getChapter } from "@noor/core";
+import { QURAN_SCRIPTS, getChapter } from "@qiraa/core";
 import { EmptyState, Page, PageHeader } from "@/components/page";
 import { VerseText } from "@/components/quran/verse-text";
 import { db, type Bookmark } from "@/lib/db";

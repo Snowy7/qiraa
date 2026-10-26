@@ -6,7 +6,7 @@ import {
   chapterTranslationUrl,
   getChapter,
   type QuranScriptId,
-} from "@noor/core";
+} from "@qiraa/core";
 import { queryClient } from "@/lib/query-client";
 import { recitationQuery } from "@/lib/stores/audio";
 import { prefetchScriptData } from "@/lib/quran/data";
@@ -46,7 +46,7 @@ export const useDownloads = create<DownloadsState>()(
       reset: () => set({ jobs: {} }),
     }),
     {
-      name: "noor-downloads",
+      name: "qiraa-downloads",
       // Interrupted jobs are not resumed; forget them on reload.
       partialize: ({ jobs }) => ({
         jobs: Object.fromEntries(

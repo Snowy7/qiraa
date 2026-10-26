@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { pageFontFamily, pageFontFile, type QuranScript } from "@noor/core";
+import { pageFontFamily, pageFontFile, type QuranScript } from "@qiraa/core";
 
 /** Root URL of the self-hosted Quran fonts (see public/fonts/quran). */
 export const FONT_ROOT = "/fonts/quran/";
@@ -99,5 +99,12 @@ export async function prefetchPageFonts(
         onProgress(++done);
       }),
     );
+  }
+}
+
+/** Starts loading the font a mushaf page needs (only QCF scripts have one per page). */
+export function preloadPageFont(script: QuranScript, page: number) {
+  if (script.font.kind === "page") {
+    loadPageFont(script.font.version, page).catch(() => {});
   }
 }

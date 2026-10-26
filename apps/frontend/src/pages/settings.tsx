@@ -14,7 +14,7 @@ import {
   QURAN_SCRIPT_IDS,
   getReciter,
   type QuranScriptId,
-} from "@noor/core";
+} from "@qiraa/core";
 import { Page, PageHeader, Segmented } from "@/components/page";
 import { ReadingOptions } from "@/components/reader/reader-settings";
 import { useTranslationName } from "@/components/reader/translation-picker";
@@ -258,14 +258,16 @@ function DataSection() {
       bookmarks: await db.bookmarks.toArray(),
       hifzProgress: await db.hifzProgress.toArray(),
       readingHistory: await db.readingHistory.toArray(),
-      preferences: JSON.parse(localStorage.getItem("noor-preferences") ?? "{}"),
+      preferences: JSON.parse(
+        localStorage.getItem("qiraa-preferences") ?? "{}",
+      ),
     };
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }),
     );
     const link = Object.assign(document.createElement("a"), {
       href: url,
-      download: `noor-backup-${new Date().toISOString().slice(0, 10)}.json`,
+      download: `qiraa-backup-${new Date().toISOString().slice(0, 10)}.json`,
     });
     link.click();
     URL.revokeObjectURL(url);

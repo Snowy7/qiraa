@@ -33,11 +33,8 @@ export type PageChunk = Readonly<Record<string, PageLines>>;
 
 export interface ScriptIndex {
   pageCount: number;
-  pagesPerChunk: number;
   /** First verse key on each page (index 0 = page 1). */
   pageFirstVerse: readonly string[];
-  /** `[firstPage, lastPage]` for each chapter (index 0 = chapter 1). */
-  chapterPages: readonly (readonly [number, number])[];
 }
 
 /** Word-by-word `[gloss, transliteration]` per word, keyed by verse key. */

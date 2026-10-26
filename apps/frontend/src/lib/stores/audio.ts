@@ -9,8 +9,9 @@ import {
   timingIndexAt,
   toVerseKey,
   wordAt,
+  wordAudioUrl,
   type ChapterRecitation,
-} from "@noor/core";
+} from "@qiraa/core";
 import { queryClient } from "@/lib/query-client";
 import { usePreferences } from "@/lib/stores/preferences";
 
@@ -29,13 +30,26 @@ export const recitationQuery = (reciterId: number, chapter: number) => ({
   staleTime: Infinity,
 });
 
+/** "ayah" stops after the ayah; "continuous" keeps reciting (into the next surah). */
+export type PlaybackScope = "ayah" | "continuous";
+
+interface PlayOptions {
+  scope?: PlaybackScope;
+  /** Also play the surah's opening (Bismillah) before its first ayah. */
+  fromStart?: boolean;
+}
+
 interface AudioState {
   status: PlaybackStatus;
   /** The ayah being recited; null when the player is closed. */
   verseKey: string | null;
   repeat: RepeatMode;
-  /** Starts at an ayah; `fromStart` also plays the surah's opening (Bismillah). */
-  play: (verseKey: string, options?: { fromStart?: boolean }) => Promise<void>;
+  scope: PlaybackScope;
+  /** A single-ayah play reached its end; the player offers to continue. */
+  finishedAyah: boolean;
+  play: (verseKey: string, options?: PlayOptions) => Promise<void>;
+  /** After a single ayah: keep reciting from the next one. */
+  continueReciting: () => void;
   toggle: () => void;
   next: () => void;
   previous: () => void;
@@ -80,11 +94,18 @@ export const useAudio = create<AudioState>((set, get) => ({
   status: "idle",
   verseKey: null,
   repeat: "off",
+  scope: "continuous",
+  finishedAyah: false,
 
   play: async (verseKey, options) => {
     const ref = parseVerseKey(verseKey);
     if (!audio || !ref) return;
-    set({ verseKey, status: "loading" });
+    set({
+      verseKey,
+      status: "loading",
+      scope: options?.scope ?? "continuous",
+      finishedAyah: false,
+    });
     try {
       const recitation = await load(ref.chapter);
       currentIndex = Math.max(
@@ -102,8 +123,18 @@ export const useAudio = create<AudioState>((set, get) => ({
     }
   },
 
+  continueReciting: () => {
+    const { verseKey, play } = get();
+    const following = loaded?.recitation.verses[currentIndex + 1];
+    if (following) void play(following.verseKey);
+    else if (verseKey) get().next();
+  },
+
   toggle: () => {
-    if (!audio || !get().verseKey) return;
+    const { verseKey, finishedAyah, play } = get();
+    if (!audio || !verseKey) return;
+    // Replaying a finished single ayah starts it again.
+    if (finishedAyah) return void play(verseKey, { scope: "ayah" });
     if (audio.paused) audio.play().catch(() => set({ status: "error" }));
     else audio.pause();
   },
@@ -154,9 +185,10 @@ function onTimeUpdate() {
       audio.currentTime = seconds(current.from);
       return;
     }
-    if (repeat === "off" && !usePreferences.getState().autoPlayNext) {
+    if (useAudio.getState().scope === "ayah") {
       audio.pause();
       audio.currentTime = seconds(current.from);
+      useAudio.setState({ finishedAyah: true });
       return;
     }
   }
@@ -190,7 +222,7 @@ if (audio) {
       return void play(toVerseKey(ref.chapter, 1), { fromStart: true });
     }
     if (
-      usePreferences.getState().autoPlayNext &&
+      useAudio.getState().scope === "continuous" &&
       ref.chapter < CHAPTERS.length
     ) {
       return void play(toVerseKey(ref.chapter + 1, 1), { fromStart: true });
@@ -223,7 +255,7 @@ function updateMediaSession(verseKey: string) {
         : chapter.nameSimple
       : verseKey,
     artist: getReciter(reciterId).name[language],
-    album: "Noor",
+    album: "Qiraa",
     artwork: [
       { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -298,4 +330,19 @@ export function startWordHighlighting(): () => void {
     audio.removeEventListener("timeupdate", update);
     audio.removeEventListener("pause", update);
   };
+}
+
+/*
+ * Word pronunciation uses its own element so tapping a word never disturbs a
+ * recitation that's loaded (it pauses it, and the user can resume).
+ */
+const wordAudio = typeof Audio === "undefined" ? null : new Audio();
+if (wordAudio) wordAudio.crossOrigin = "anonymous";
+
+/** Plays one word's pronunciation (pausing any recitation first). */
+export function playWord(verseKey: string, position: number) {
+  if (!wordAudio) return;
+  if (audio && !audio.paused) audio.pause();
+  wordAudio.src = wordAudioUrl(verseKey, position);
+  wordAudio.play().catch(() => {});
 }

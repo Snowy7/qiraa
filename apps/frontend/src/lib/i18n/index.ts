@@ -4,7 +4,7 @@ import {
   formatNumber,
   type Locale,
   type MessageKey,
-} from "@noor/core";
+} from "@qiraa/core";
 import { usePreferences } from "@/lib/stores/preferences";
 
 export type { MessageKey };

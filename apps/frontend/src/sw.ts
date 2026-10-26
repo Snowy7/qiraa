@@ -57,7 +57,9 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.hostname === "download.quranicaudio.com",
+  ({ url }) =>
+    url.hostname === "download.quranicaudio.com" ||
+    url.hostname === "audio.qurancdn.com",
   new CacheFirst({
     cacheName: "quran-audio",
     plugins: [

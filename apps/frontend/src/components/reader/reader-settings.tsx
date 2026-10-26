@@ -13,7 +13,7 @@ import {
   QURAN_SCRIPT_IDS,
   getReciter,
   type QuranScriptId,
-} from "@noor/core";
+} from "@qiraa/core";
 import { ReciterPicker } from "@/components/audio/reciter-picker";
 import { VerseText } from "@/components/quran/verse-text";
 import { useI18n } from "@/lib/i18n";
@@ -208,12 +208,6 @@ export function ReadingOptions() {
           <Switch
             checked={prefs.followRecitation}
             onCheckedChange={(value) => prefs.set({ followRecitation: value })}
-          />
-        </SettingRow>
-        <SettingRow label={t("autoPlayNext")} hint={t("autoPlayNextHint")}>
-          <Switch
-            checked={prefs.autoPlayNext}
-            onCheckedChange={(value) => prefs.set({ autoPlayNext: value })}
           />
         </SettingRow>
       </section>

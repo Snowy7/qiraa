@@ -1,8 +1,8 @@
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation as useRoute } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AudioPlayer } from "@/components/audio/audio-player";
-import { NoorMark } from "@/components/icons";
+import { BrandMark } from "@/components/icons";
 import { InstallPrompt, ReloadPrompt } from "@/components/pwa";
 import { initializeDatabase } from "@/lib/db";
 import { useAudio } from "@/lib/stores/audio";
@@ -43,8 +43,21 @@ function useDocumentPreferences() {
   }, [theme]);
 }
 
+/** True a few seconds after mount, once the first screen has loaded. */
+function useAfterStartup(delayMs: number) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), delayMs);
+    return () => clearTimeout(timer);
+  }, [delayMs]);
+  return ready;
+}
+
 export function AppShell() {
   const { pathname } = useRoute();
+  // The service worker precaches ~3 MB; start it after the first screen so
+  // it doesn't compete with what the user is waiting for.
+  const registerServiceWorker = useAfterStartup(4000);
   const immersive = IMMERSIVE.some((pattern) => pattern.test(pathname));
   const playerOpen = useAudio((s) => s.verseKey !== null);
   useDocumentPreferences();
@@ -69,7 +82,7 @@ export function AppShell() {
         <Suspense
           fallback={
             <div className="delayed-fade flex h-[70dvh] items-center justify-center">
-              <NoorMark className="size-10 animate-pulse text-primary/40" />
+              <BrandMark className="size-10 animate-pulse text-primary/40" />
             </div>
           }
         >
@@ -79,7 +92,7 @@ export function AppShell() {
       {!immersive && <TabBar pathname={pathname} />}
       <AudioPlayer aboveTabBar={!immersive} />
       <InstallPrompt />
-      <ReloadPrompt />
+      {registerServiceWorker && <ReloadPrompt />}
       <Toaster
         position="top-center"
         toastOptions={{

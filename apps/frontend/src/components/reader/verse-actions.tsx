@@ -15,7 +15,7 @@ import {
   parseVerseKey,
   wordToPlainText,
   type ReviewRating,
-} from "@noor/core";
+} from "@qiraa/core";
 import { chapterTranslationQuery } from "@/lib/api/queries";
 import { db } from "@/lib/db";
 import { toggleBookmark } from "@/lib/db/bookmarks";
@@ -167,7 +167,7 @@ export function VerseActionsSheet() {
 
         <div className="grid grid-cols-4 gap-2">
           {action(<Play />, t("play"), () => {
-            useAudio.getState().play(verseKey);
+            void useAudio.getState().play(verseKey, { scope: "ayah" });
             close();
           })}
           {action(<BookOpenText />, t("tafsir"), () =>

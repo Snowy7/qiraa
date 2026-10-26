@@ -7,7 +7,7 @@ import {
   review,
   type Confidence,
   type ReviewRating,
-} from "@noor/core";
+} from "@qiraa/core";
 import { db } from "./index";
 import type { HifzProgress } from "./types";
 

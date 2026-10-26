@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatCountdown, nextPrayer, prayerTimesFor } from "@noor/core";
+import { formatCountdown, nextPrayer, prayerTimesFor } from "@qiraa/core";
 import { useNow } from "@/lib/hooks/use-now";
 import { useLocation } from "@/lib/stores/location";
 import { usePreferences } from "@/lib/stores/preferences";

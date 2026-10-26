@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DOMPurify from "dompurify";
 import { ArrowRight, Clock, Search, X } from "lucide-react";
 import { Button } from "@template/ui";
-import { getChapter, parseVerseKey, searchChapters } from "@noor/core";
+import { getChapter, parseVerseKey, searchChapters } from "@qiraa/core";
 import { Page, SectionTitle } from "@/components/page";
 import { SurahName } from "@/components/quran/ornaments";
 import { ChapterNumber } from "@/components/reader/surah-navigator";
@@ -11,7 +11,7 @@ import { useQuranSearch } from "@/lib/api/queries";
 import { useOnline } from "@/lib/hooks/use-online";
 import { useI18n } from "@/lib/i18n";
 
-const RECENT_KEY = "noor-recent-searches";
+const RECENT_KEY = "qiraa-recent-searches";
 
 /** Accepts Latin or Arabic-Indic digits and common separators: 2:255, ٢:٢٥٥, 2.255. */
 function toVerseKey(query: string): string | null {

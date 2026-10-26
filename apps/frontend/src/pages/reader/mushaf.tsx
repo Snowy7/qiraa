@@ -5,11 +5,12 @@ import { Button } from "@template/ui";
 import {
   QURAN_SCRIPTS,
   getChapter,
+  chapterPageRange,
   juzOfVerse,
   pageOfVerse,
   parseVerseKey,
   type QuranScript,
-} from "@noor/core";
+} from "@qiraa/core";
 import { MushafPage } from "@/components/quran/mushaf-page";
 import { ReaderLayout } from "@/components/reader/reader-layout";
 import NotFoundPage from "@/pages/not-found";
@@ -37,7 +38,9 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
   const index = useScriptIndex(script.id).data;
   const quranTextScale = usePreferences((s) => s.quranTextScale);
   const setPrefs = usePreferences((s) => s.set);
-  const { open, verseKey: selectedVerse, sheet } = useReaderUi();
+  const { verseKey: sheetVerse, sheet } = useReaderUi();
+  const wordVerse = useReaderUi((s) => s.word?.verseKey);
+  const selectedVerse = wordVerse ?? (sheet === "actions" ? sheetVerse : null);
   const playerOpen = useAudio((s) => s.verseKey !== null);
 
   // Wide landscape screens show an open book: two facing pages.
@@ -119,7 +122,7 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
       subtitle={`${t("pageNumber", { n: first })} · ${t("juzNumber", { n: firstVerse ? juzOfVerse(firstVerse) : 1 })}`}
       mode="mushaf"
       onModeChange={switchMode}
-      hrefForChapter={(c) => `/mushaf/${index?.chapterPages[c.id - 1][0] ?? 1}`}
+      hrefForChapter={(c) => `/mushaf/${chapterPageRange(script.id, c.id)[0]}`}
       playFrom={() => firstVerse ?? "1:1"}
     >
       <div
@@ -134,7 +137,10 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
         {...swipe}
       >
         {/* Pages sit directly on the paper-coloured background; a spread gets a spine. */}
-        <div dir="rtl" className="flex items-start justify-center gap-6">
+        <div
+          dir="rtl"
+          className="flex min-h-[calc(100dvh-10rem)] items-center justify-center gap-6"
+        >
           {pages.map((p, i) => (
             <div
               key={p}
@@ -143,8 +149,7 @@ function MushafReader({ page, script }: { page: number; script: QuranScript }) {
               <MushafPage
                 script={script}
                 page={p}
-                selectedVerse={sheet === "actions" ? selectedVerse : null}
-                onSelectVerse={(key) => open("actions", key)}
+                selectedVerse={selectedVerse}
               />
             </div>
           ))}

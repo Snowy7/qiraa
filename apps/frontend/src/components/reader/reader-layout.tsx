@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -14,17 +14,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@template/ui";
-import type { Chapter } from "@noor/core";
+import type { Chapter } from "@qiraa/core";
 import { BackButton, Segmented } from "@/components/page";
 import { SurahName } from "@/components/quran/ornaments";
 import { useI18n } from "@/lib/i18n";
-import { startWordHighlighting, useAudio } from "@/lib/stores/audio";
+import { playWord, startWordHighlighting, useAudio } from "@/lib/stores/audio";
 import { useReaderUi } from "@/lib/stores/reader-ui";
 import type { ReadingMode } from "@/lib/stores/preferences";
-import { ReaderSettings } from "./reader-settings";
 import { SurahNavigator } from "./surah-navigator";
-import { TafsirSheet } from "./tafsir-sheet";
-import { VerseActionsSheet } from "./verse-actions";
+import { WordPopover } from "./word-popover";
+
+// Sheets load on first use (and in the background once the page settles).
+const loadSettings = () => import("./reader-settings");
+const loadActions = () => import("./verse-actions");
+const loadTafsir = () => import("./tafsir-sheet");
+const ReaderSettings = lazy(() =>
+  loadSettings().then((m) => ({ default: m.ReaderSettings })),
+);
+const VerseActionsSheet = lazy(() =>
+  loadActions().then((m) => ({ default: m.VerseActionsSheet })),
+);
+const TafsirSheet = lazy(() =>
+  loadTafsir().then((m) => ({ default: m.TafsirSheet })),
+);
 
 interface ReaderLayoutProps {
   /** Chapter shown in the title and highlighted in the navigator. */
@@ -56,6 +68,44 @@ export function ReaderLayout({
   const playing = useAudio((s) => s.status === "playing");
 
   useEffect(startWordHighlighting, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadSettings();
+      void loadActions();
+      void loadTafsir();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  /**
+   * Taps anywhere in the text: an ayah number opens its actions, a word shows
+   * its meaning and is pronounced (unless a recitation is playing).
+   */
+  const onTextClick = (event: React.MouseEvent) => {
+    const target = event.target as Element;
+    const end = target.closest<HTMLElement>("[data-verse-end]");
+    if (end?.dataset.verseEnd) return open("actions", end.dataset.verseEnd);
+    const element = target.closest<HTMLElement>("[data-word]");
+    if (!element?.dataset.word) return;
+    const [chapterId, verse, position] = element.dataset.word
+      .split(":")
+      .map(Number);
+    const verseKey = `${chapterId}:${verse}`;
+    const rect = element.getBoundingClientRect();
+    useReaderUi.getState().showWord({
+      verseKey,
+      position,
+      rect: {
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+      },
+      text: element.textContent ?? "",
+      fontFamily: getComputedStyle(element).fontFamily,
+    });
+    if (useAudio.getState().status !== "playing") playWord(verseKey, position);
+  };
 
   const togglePlay = () => {
     const audio = useAudio.getState();
@@ -158,8 +208,9 @@ export function ReaderLayout({
           </div>
         </header>
 
-        {children}
+        <div onClick={onTextClick}>{children}</div>
       </div>
+      <WordPopover />
 
       <Dialog
         open={sheet === "surahs"}
@@ -177,12 +228,13 @@ export function ReaderLayout({
           />
         </DialogContent>
       </Dialog>
-      <ReaderSettings
-        open={sheet === "settings"}
-        onOpenChange={(isOpen) => !isOpen && close()}
-      />
-      <VerseActionsSheet />
-      <TafsirSheet />
+      <Suspense>
+        {sheet === "settings" && (
+          <ReaderSettings open onOpenChange={(isOpen) => !isOpen && close()} />
+        )}
+        {sheet === "actions" && <VerseActionsSheet />}
+        {sheet === "tafsir" && <TafsirSheet />}
+      </Suspense>
     </div>
   );
 }

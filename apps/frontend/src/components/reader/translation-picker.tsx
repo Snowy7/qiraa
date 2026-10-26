@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@template/ui";
-import { DEFAULT_TRANSLATION_ID } from "@noor/core";
+import { DEFAULT_TRANSLATION_ID } from "@qiraa/core";
 import { useTranslationResources } from "@/lib/api/queries";
 import { useI18n } from "@/lib/i18n";
 import { usePreferences } from "@/lib/stores/preferences";

@@ -336,9 +336,20 @@
       color 0.15s;
   }
 
-  .mushaf-word.cursor-pointer:hover,
+  [data-word] {
+    cursor: pointer;
+    border-radius: 0.2em;
+  }
+
   .mushaf-word.is-active {
     color: hsl(var(--primary));
+  }
+
+  /* Only real pointers hover; on touch screens :hover sticks after a tap. */
+  @media (hover: hover) {
+    [data-word]:hover {
+      color: hsl(var(--primary));
+    }
   }
 
   /* The word being recited, toggled from the audio engine (no re-render). */

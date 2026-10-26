@@ -1,6 +1,6 @@
 import { LocateFixed, MapPin } from "lucide-react";
 import { Button } from "@template/ui";
-import { formatHijriDate } from "@noor/core";
+import { formatHijriDate } from "@qiraa/core";
 import { MosqueSkyline } from "@/components/icons";
 import { usePrayerDay, useTimeFormatter } from "@/lib/hooks/use-prayer";
 import { useI18n } from "@/lib/i18n";

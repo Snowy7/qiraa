@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Eye, Volume2 } from "lucide-react";
 import { Button } from "@template/ui";
-import { QURAN_SCRIPTS, getChapter, type ReviewRating } from "@noor/core";
+import { QURAN_SCRIPTS, getChapter, type ReviewRating } from "@qiraa/core";
 import { BackButton, Page } from "@/components/page";
 import { VerseText } from "@/components/quran/verse-text";
 import { getDueReviews, recordReview } from "@/lib/db/hifz";

@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@template/ui";
-import { RECITERS } from "@noor/core";
+import { RECITERS } from "@qiraa/core";
 import { useI18n } from "@/lib/i18n";
 import { usePreferences } from "@/lib/stores/preferences";
 import { cn } from "@/lib/utils";

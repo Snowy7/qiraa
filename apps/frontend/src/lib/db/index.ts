@@ -9,6 +9,9 @@ import type {
 } from "./types";
 
 /**
+ * The database keeps the app's original name ("NoorDB") so existing users'
+ * saved ayahs, memorisation and history carry over.
+ *
  * Local-first user data: collections, bookmarks, memorisation and reading
  * history. `settings` and `apiCache` are legacy tables, read once to migrate
  * preferences (see lib/stores/preferences.ts).

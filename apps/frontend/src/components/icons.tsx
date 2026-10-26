@@ -40,8 +40,8 @@ export function MosqueIcon(props: IconProps) {
   );
 }
 
-/** Eight-pointed star (rub el hizb), the Noor brand mark. */
-export function NoorMark(props: IconProps) {
+/** Eight-pointed star (rub el hizb), the Qiraa brand mark. */
+export function BrandMark(props: IconProps) {
   return (
     <svg viewBox="0 0 32 32" {...props}>
       <path

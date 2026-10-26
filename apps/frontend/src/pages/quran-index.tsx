@@ -10,7 +10,7 @@ import {
   parseVerseKey,
   searchChapters,
   type Chapter,
-} from "@noor/core";
+} from "@qiraa/core";
 import { Page, PageHeader, Segmented } from "@/components/page";
 import { SurahName } from "@/components/quran/ornaments";
 import { ChapterNumber } from "@/components/reader/surah-navigator";

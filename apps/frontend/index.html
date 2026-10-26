@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
 
-    <title>Noor — Read, listen and memorise the Quran</title>
+    <title>Qiraa — Read, listen and memorise the Quran</title>
     <meta
       name="description"
       content="A calm Quran companion: accurate mushaf fonts, translations, recitations, memorisation and prayer times. Works offline."
@@ -30,31 +30,39 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Noor" />
+    <meta name="apple-mobile-web-app-title" content="Qiraa" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="Noor" />
+    <meta name="application-name" content="Qiraa" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://noorquran.app/" />
+    <meta property="og:url" content="https://qiraa.app/" />
     <meta
       property="og:title"
-      content="Noor — Read, listen and memorise the Quran"
+      content="Qiraa — Read, listen and memorise the Quran"
     />
     <meta
       property="og:description"
       content="Accurate mushaf fonts, translations, recitations, memorisation and prayer times. Works offline."
     />
-    <meta property="og:image" content="https://noorquran.app/og-image.png" />
-    <meta property="og:site_name" content="Noor" />
+    <meta property="og:image" content="https://qiraa.app/og-image.png" />
+    <meta property="og:site_name" content="Qiraa" />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- Default Quran script and the surah-name calligraphy used on most screens. -->
     <link
       rel="preload"
       href="/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/quran/surah-names/v1/sura_names.woff2"
       as="font"
       type="font/woff2"
       crossorigin
@@ -65,7 +73,7 @@
       (function () {
         try {
           var prefs =
-            JSON.parse(localStorage.getItem("noor-preferences") || "{}")
+            JSON.parse(localStorage.getItem("qiraa-preferences") || "{}")
               .state || {};
           var theme = prefs.theme || localStorage.getItem("theme") || "system";
           var dark =

@@ -3,7 +3,7 @@
  * the platform's `t(key, params)` helper.
  */
 export const MESSAGES = {
-  appName: { en: "Noor", ar: "نور" },
+  appName: { en: "Qiraa", ar: "قراءة" },
 
   // Navigation
   home: { en: "Home", ar: "الرئيسية" },
@@ -14,11 +14,9 @@ export const MESSAGES = {
   search: { en: "Search", ar: "البحث" },
   settings: { en: "Settings", ar: "الإعدادات" },
   back: { en: "Back", ar: "رجوع" },
-  close: { en: "Close", ar: "إغلاق" },
   cancel: { en: "Cancel", ar: "إلغاء" },
   delete: { en: "Delete", ar: "حذف" },
   create: { en: "Create", ar: "إنشاء" },
-  retry: { en: "Try again", ar: "حاول مرة أخرى" },
   offline: { en: "You're offline", ar: "أنت غير متصل" },
   needsConnection: {
     en: "This needs an internet connection. It will be saved for offline use once loaded.",
@@ -66,7 +64,6 @@ export const MESSAGES = {
     en: "Calculated on your device · {method}",
     ar: "محسوبة على جهازك · {method}",
   },
-  today: { en: "Today", ar: "اليوم" },
 
   // Quran index
   surah: { en: "Surah", ar: "سورة" },
@@ -84,7 +81,6 @@ export const MESSAGES = {
     ar: "لا توجد سورة تطابق «{query}»",
   },
   goToPage: { en: "Go to page", ar: "انتقل إلى الصفحة" },
-  startsAt: { en: "Starts at {verse}", ar: "يبدأ من {verse}" },
 
   // Reader
   verseByVerse: { en: "Verses", ar: "الآيات" },
@@ -110,7 +106,6 @@ export const MESSAGES = {
   copy: { en: "Copy", ar: "نسخ" },
   share: { en: "Share", ar: "مشاركة" },
   copied: { en: "Copied", ar: "تم النسخ" },
-  markMemorized: { en: "Memorisation", ar: "الحفظ" },
   moreActions: { en: "More actions", ar: "إجراءات أخرى" },
   verseActions: { en: "Ayah {key}", ar: "الآية {key}" },
   loadFailed: {
@@ -127,7 +122,6 @@ export const MESSAGES = {
   // Audio
   reciter: { en: "Reciter", ar: "القارئ" },
   chooseReciter: { en: "Choose reciter", ar: "اختر القارئ" },
-  repeat: { en: "Repeat", ar: "تكرار" },
   repeatOff: { en: "Repeat off", ar: "التكرار متوقف" },
   repeatVerse: { en: "Repeat ayah", ar: "تكرار الآية" },
   repeatSurah: { en: "Repeat surah", ar: "تكرار السورة" },
@@ -146,15 +140,13 @@ export const MESSAGES = {
     ar: "التمرير وتقليب الصفحات مع القارئ",
   },
   nowPlaying: { en: "Now playing", ar: "قيد التشغيل" },
-  playPage: { en: "Play this page", ar: "تشغيل هذه الصفحة" },
+  listen: { en: "Listen", ar: "استماع" },
+  playAyah: { en: "Play ayah", ar: "تشغيل الآية" },
+  more: { en: "More", ar: "المزيد" },
+  continueReciting: { en: "Continue", ar: "متابعة" },
   downloadingPercent: {
     en: "Downloading {percent}%",
     ar: "جارٍ التنزيل {percent}٪",
-  },
-  autoPlayNext: { en: "Continue to next ayah", ar: "الانتقال للآية التالية" },
-  autoPlayNextHint: {
-    en: "Keep reciting after each ayah",
-    ar: "متابعة التلاوة بعد كل آية",
   },
 
   // Collections
@@ -181,8 +173,6 @@ export const MESSAGES = {
   },
   collectionNotFound: { en: "Collection not found", ar: "المجموعة غير موجودة" },
   removeFromCollection: { en: "Remove", ar: "إزالة" },
-  favorites: { en: "Favourites", ar: "المفضلة" },
-  toReview: { en: "To review", ar: "للمراجعة" },
 
   // Memorisation
   memorization: { en: "Memorisation", ar: "الحفظ" },
@@ -192,7 +182,6 @@ export const MESSAGES = {
   },
   dayStreak: { en: "Day streak", ar: "أيام متتالية" },
   reviewedToday: { en: "Reviewed today", ar: "مراجعات اليوم" },
-  dueNow: { en: "Due now", ar: "مستحقة الآن" },
   learning: { en: "Learning", ar: "قيد الحفظ" },
   memorized: { en: "Memorised", ar: "محفوظة" },
   startReview: { en: "Start review", ar: "ابدأ المراجعة" },
@@ -221,12 +210,10 @@ export const MESSAGES = {
   shaky: { en: "Shaky", ar: "متردد" },
   good: { en: "Good", ar: "جيد" },
   solid: { en: "Solid", ar: "متقن" },
-  newVerse: { en: "New", ar: "جديدة" },
   sessionComplete: { en: "Session complete", ar: "اكتملت الجلسة" },
   reviewedCount: { en: "{n} ayahs reviewed", ar: "تمت مراجعة {n} آية" },
   needsWork: { en: "Needs work", ar: "تحتاج مراجعة" },
   backToMemorize: { en: "Back to memorisation", ar: "العودة إلى الحفظ" },
-  review: { en: "Review", ar: "مراجعة" },
 
   // Search
   searchPlaceholder: {
@@ -259,7 +246,6 @@ export const MESSAGES = {
   system: { en: "System", ar: "النظام" },
   language: { en: "Language", ar: "اللغة" },
   reading: { en: "Reading", ar: "القراءة" },
-  audio: { en: "Audio", ar: "الصوت" },
   offlineSection: { en: "Offline", ar: "دون اتصال" },
   offlineIntro: {
     en: "Arabic text for every script is built in. Download the rest to read and listen without a connection.",
@@ -282,17 +268,12 @@ export const MESSAGES = {
     ar: "نزّل السور واحدة تلو الأخرى من القارئ",
   },
   download: { en: "Download", ar: "تنزيل" },
-  downloading: {
-    en: "Downloading {done}/{total}",
-    ar: "جارٍ التنزيل {done}/{total}",
-  },
   downloaded: { en: "Available offline", ar: "متاح دون اتصال" },
   downloadFailed: {
     en: "Download stopped. Try again when online.",
     ar: "توقف التنزيل. حاول مجددًا عند الاتصال.",
   },
   downloadSurahAudio: { en: "Download recitation", ar: "تنزيل التلاوة" },
-  builtIn: { en: "Built in", ar: "مدمج" },
   data: { en: "Your data", ar: "بياناتك" },
   exportData: { en: "Export backup", ar: "تصدير نسخة احتياطية" },
   exportDataHint: {
@@ -312,7 +293,6 @@ export const MESSAGES = {
     ar: "نص المصحف وتخطيطاته من مجمع الملك فهد عبر Quran.com، والتلاوات من EveryAyah.",
   },
   version: { en: "Version {version}", ar: "الإصدار {version}" },
-  sizeSample: { en: "Aa", ar: "أ" },
 
   // Not found / errors
   notFound: { en: "Page not found", ar: "الصفحة غير موجودة" },
@@ -324,10 +304,10 @@ export const MESSAGES = {
   somethingWrong: { en: "Something went wrong", ar: "حدث خطأ ما" },
   reload: { en: "Reload", ar: "إعادة التحميل" },
   updateReady: {
-    en: "A new version of Noor is ready",
-    ar: "إصدار جديد من نور جاهز",
+    en: "A new version of Qiraa is ready",
+    ar: "إصدار جديد من قراءة جاهز",
   },
-  install: { en: "Install Noor", ar: "تثبيت نور" },
+  install: { en: "Install Qiraa", ar: "تثبيت قراءة" },
   installHint: {
     en: "Add it to your home screen for quick, offline access.",
     ar: "أضفه إلى الشاشة الرئيسية لوصول سريع دون اتصال.",

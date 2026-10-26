@@ -5,7 +5,7 @@ import {
   fetchTranslationResources,
   fetchVerseTafsir,
   searchQuran,
-} from "@noor/core";
+} from "@qiraa/core";
 import { usePreferences } from "@/lib/stores/preferences";
 
 /*

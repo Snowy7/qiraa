@@ -1,11 +1,18 @@
-import { Fragment, memo } from "react";
+import {
+  Fragment,
+  memo,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import {
   getChapter,
   isCenteredLine,
   parseVerseKey,
   type QuranScript,
-} from "@noor/core";
-import { usePage, useScriptIndex } from "@/lib/quran/data";
+} from "@qiraa/core";
+import { usePage } from "@/lib/quran/data";
 import { useScriptFonts } from "@/lib/quran/fonts";
 import { useAudio } from "@/lib/stores/audio";
 import { useI18n } from "@/lib/i18n";
@@ -16,8 +23,8 @@ import { WordText } from "./verse-text";
 interface MushafPageProps {
   script: QuranScript;
   page: number;
+  /** Ayah to emphasise (the one being looked at in a popover or sheet). */
   selectedVerse?: string | null;
-  onSelectVerse?: (verseKey: string) => void;
 }
 
 /**
@@ -29,17 +36,19 @@ export const MushafPage = memo(function MushafPage({
   script,
   page,
   selectedVerse,
-  onSelectVerse,
 }: MushafPageProps) {
   const { n } = useI18n();
   const { data: lines } = usePage(script.id, page);
-  const index = useScriptIndex(script.id).data;
   const fontFor = useScriptFonts(script, [page]);
   const fontFamily = fontFor(page);
   const reciting = useAudio((s) => (s.status === "idle" ? null : s.verseKey));
 
-  const ready = lines && index && fontFamily;
-  const headersShown = new Set<number>();
+  const ready = lines && fontFamily;
+  // The opening pages have a few short, centred lines; let them fill the page.
+  const linesRef = useRef<HTMLDivElement>(null);
+  const openingPage = script.centeredLines === "madani" && page <= 2;
+  const boost = useWordBoost(linesRef, openingPage && !!ready);
+  const wordStyle = openingPage ? { fontSize: `${boost}em` } : undefined;
 
   return (
     <article
@@ -54,7 +63,7 @@ export const MushafPage = memo(function MushafPage({
         } as React.CSSProperties
       }
     >
-      <div className="flex flex-1 flex-col justify-center">
+      <div ref={linesRef} className="flex flex-1 flex-col justify-center">
         {!ready
           ? Array.from({ length: 15 }, (_, i) => (
               <div key={i} className="mushaf-line">
@@ -62,14 +71,10 @@ export const MushafPage = memo(function MushafPage({
               </div>
             ))
           : lines.map(([lineNumber, segments]) => {
-              const firstKey = segments[0]?.[0];
+              const [firstKey, firstWord] = segments[0] ?? [];
               const ref = firstKey ? parseVerseKey(firstKey) : null;
-              // A surah header precedes the line where the surah's first verse begins.
-              const startsChapter =
-                ref?.verse === 1 &&
-                index.chapterPages[ref.chapter - 1][0] === page &&
-                !headersShown.has(ref.chapter);
-              if (startsChapter) headersShown.add(ref.chapter);
+              // A surah header precedes the line holding its first word.
+              const startsChapter = ref?.verse === 1 && firstWord === 1;
               const chapter = ref ? getChapter(ref.chapter) : undefined;
 
               return (
@@ -97,18 +102,14 @@ export const MushafPage = memo(function MushafPage({
                         verseKey === selectedVerse || verseKey === reciting;
                       const wordClass = cn(
                         "mushaf-word",
-                        onSelectVerse && "cursor-pointer",
                         active && "is-active",
                       );
-                      const select = onSelectVerse
-                        ? () => onSelectVerse(verseKey)
-                        : undefined;
                       const spans = words.map((word, i) => (
                         <span
                           key={`${verseKey}-${i}`}
                           className={wordClass}
+                          style={wordStyle}
                           data-word={`${verseKey}:${start + i}`}
-                          onClick={select}
                         >
                           <WordText word={word} />
                         </span>
@@ -118,7 +119,8 @@ export const MushafPage = memo(function MushafPage({
                           <span
                             key={`${verseKey}-end`}
                             className={cn(wordClass, "mushaf-end")}
-                            onClick={select}
+                            style={wordStyle}
+                            data-verse-end={verseKey}
                           >
                             {end}
                           </span>,
@@ -137,3 +139,43 @@ export const MushafPage = memo(function MushafPage({
     </article>
   );
 });
+
+/**
+ * Scale factor that makes the widest line's words fill the line width.
+ * Re-measured when the page resizes; rounded so measuring can't oscillate.
+ */
+function useWordBoost(
+  container: RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+) {
+  const [boost, setBoost] = useState(1);
+
+  useLayoutEffect(() => {
+    const element = container.current;
+    if (!enabled || !element) return;
+    const measure = () => {
+      const lines = [...element.querySelectorAll<HTMLElement>(".mushaf-line")];
+      if (lines.length === 0) return;
+      const available = lines[0].clientWidth;
+      const widest = Math.max(
+        ...lines.map((line) =>
+          [...line.children].reduce(
+            (sum, child) => sum + child.getBoundingClientRect().width,
+            0,
+          ),
+        ),
+      );
+      setBoost((current) => {
+        const natural = widest / current;
+        const next = Math.min(1.8, Math.max(1, (available * 0.92) / natural));
+        return Math.round(next * 100) / 100;
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [container, enabled]);
+
+  return boost;
+}

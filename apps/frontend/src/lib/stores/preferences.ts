@@ -7,8 +7,9 @@ import {
   RECITERS,
   isQuranScriptId,
   type QuranScriptId,
-} from "@noor/core";
+} from "@qiraa/core";
 import { db } from "@/lib/db";
+import { useLocation } from "@/lib/stores/location";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type Language = "en" | "ar";
@@ -31,7 +32,6 @@ export interface Preferences {
   /** quran.com audio reciter id. */
   reciterId: number;
   playbackRate: number;
-  autoPlayNext: boolean;
   /** Keep the ayah being recited in view (scroll / turn the page). */
   followRecitation: boolean;
 }
@@ -49,7 +49,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   tafsirId: null,
   reciterId: DEFAULT_RECITER_ID,
   playbackRate: 1,
-  autoPlayNext: true,
   followRecitation: true,
 };
 
@@ -57,7 +56,7 @@ interface PreferencesStore extends Preferences {
   set: (patch: Partial<Preferences>) => void;
 }
 
-const STORAGE_KEY = "noor-preferences";
+const STORAGE_KEY = "qiraa-preferences";
 
 /** User preferences, persisted to localStorage so they apply before first render. */
 export const usePreferences = create<PreferencesStore>()(
@@ -147,11 +146,26 @@ export async function migrateLegacyPreferences(): Promise<void> {
     patch.reciterId = LEGACY_RECITERS[reciter];
   const speed = settings.get("playbackSpeed");
   if (typeof speed === "number") patch.playbackRate = speed;
-  const autoPlay = settings.get("autoPlayNext");
-  if (typeof autoPlay === "boolean") patch.autoPlayNext = autoPlay;
 
   if (!RECITERS.some((r) => r.id === patch.reciterId)) delete patch.reciterId;
   usePreferences.getState().set(patch);
+
+  // The old app cached the prayer-times location under its own key.
+  try {
+    const old = JSON.parse(
+      localStorage.getItem("noor_cached_location") ?? "null",
+    );
+    if (
+      old &&
+      typeof old.lat === "number" &&
+      !useLocation.getState().location
+    ) {
+      const label = [old.city, old.country].filter(Boolean).join(", ") || null;
+      useLocation.setState({ location: { lat: old.lat, lng: old.lng, label } });
+    }
+  } catch {
+    // ignore malformed legacy state
+  }
 }
 
 function clamp(value: number, min: number, max: number) {

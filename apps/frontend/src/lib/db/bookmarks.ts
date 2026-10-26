@@ -1,4 +1,4 @@
-import { parseVerseKey } from "@noor/core";
+import { parseVerseKey } from "@qiraa/core";
 import { db } from "./index";
 
 /** Adds the verse to a collection, or removes it if it is already there. */

@@ -8,7 +8,8 @@
  * Output (all JSON, committed to the repo):
  *   chapters.json                    114 chapters with en/ar names and page ranges
  *   juzs.json                        30 juz with their first verse
- *   scripts/<script>/index.json      page count, first verse per page, chapter page ranges
+ *   chapter-pages.json               [firstPage, lastPage] of every chapter, per script
+ *   scripts/<script>/index.json      page count and first verse per page
  *   scripts/<script>/p<NNN>.json     mushaf lines for 20 pages starting at NNN
  *   wbw/en/<chapter>.json            word-by-word gloss + transliteration per verse
  */
@@ -22,7 +23,7 @@ import type { WordText } from "../src/mushaf/types.ts";
 
 const API = "https://api.qurancdn.com/api/qdc";
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
-const CACHE = join(tmpdir(), "noor-data-cache");
+const CACHE = join(tmpdir(), "qiraa-data-cache");
 const PAGES_PER_CHUNK = 20;
 const CONCURRENCY = 6;
 
@@ -132,7 +133,7 @@ async function getJson<T>(url: string, attempt = 1): Promise<T> {
   if (cached) return JSON.parse(cached) as T;
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "noor-data-generator" },
+      headers: { "User-Agent": "qiraa-data-generator" },
     });
     if (!res.ok) throw new Error(`${res.status} ${url}`);
     const body = await res.text();
@@ -275,10 +276,9 @@ async function generateJob(
       );
     await writeJson(join(dir, "index.json"), {
       pageCount: job.pageCount,
-      pagesPerChunk: PAGES_PER_CHUNK,
       pageFirstVerse,
-      chapterPages,
     });
+    chapterPagesByScript[output.script] = chapterPages;
     console.log(
       `  ${output.script}: ${job.pageCount} pages, ${verseCount} verses`,
     );
@@ -363,12 +363,16 @@ async function generateJuzs() {
   );
 }
 
+/** Chapter page ranges per script, small enough to bundle with the app. */
+const chapterPagesByScript: Record<string, [number, number][]> = {};
+
 async function main() {
   await generateChapters();
   await generateJuzs();
 
   const wordByWord = new Map<string, [string, string][]>();
   for (const job of JOBS) await generateJob(job, wordByWord);
+  await writeJson(join(OUT, "chapter-pages.json"), chapterPagesByScript);
 
   const wbwDir = join(OUT, "wbw", "en");
   await rm(wbwDir, { recursive: true, force: true });

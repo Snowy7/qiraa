@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import {
   assembleChapterVerses,
+  chapterPageRange,
   chunkStartFor,
   pageOfVerse,
   parseVerseKey,
@@ -12,26 +13,29 @@ import {
   type QuranScriptId,
   type ScriptIndex,
   type WordByWordChapter,
-} from "@noor/core";
+} from "@qiraa/core";
 import { queryClient } from "@/lib/query-client";
 
 /*
- * The offline dataset from @noor/core, split into lazily imported chunks.
+ * The offline dataset from @qiraa/core, split into lazily imported chunks.
  * Vite emits each JSON file as its own hashed asset, so chunks download on
  * demand, cache forever, and are kept offline by the service worker.
  */
 
 const indexFiles = import.meta.glob<ScriptIndex>(
-  "@noor-data/scripts/*/index.json",
+  "@quran-data/scripts/*/index.json",
   {
     import: "default",
   },
 );
-const chunkFiles = import.meta.glob<PageChunk>("@noor-data/scripts/*/p*.json", {
-  import: "default",
-});
+const chunkFiles = import.meta.glob<PageChunk>(
+  "@quran-data/scripts/*/p*.json",
+  {
+    import: "default",
+  },
+);
 const wordByWordFiles = import.meta.glob<WordByWordChapter>(
-  "@noor-data/wbw/en/*.json",
+  "@quran-data/wbw/en/*.json",
   {
     import: "default",
   },
@@ -75,9 +79,8 @@ async function loadPage(
   script: QuranScriptId,
   page: number,
 ) {
-  const index = await client.ensureQueryData(scriptIndexQuery(script));
   const chunk = await client.ensureQueryData(
-    chunkQuery(script, chunkStartFor(index, page)),
+    chunkQuery(script, chunkStartFor(page)),
   );
   const lines = chunk[page];
   if (!lines) throw new Error(`Page ${page} is not in the ${script} layout`);
@@ -95,8 +98,7 @@ export const chapterVersesQuery = (script: QuranScriptId, chapter: number) =>
   queryOptions({
     queryKey: ["quran-data", script, "chapter", chapter],
     queryFn: async () => {
-      const index = await queryClient.ensureQueryData(scriptIndexQuery(script));
-      const [first, last] = index.chapterPages[chapter - 1];
+      const [first, last] = chapterPageRange(script, chapter);
       const numbers = Array.from(
         { length: last - first + 1 },
         (_, i) => first + i,
@@ -163,4 +165,17 @@ export function useVerse(script: QuranScriptId, verseKey: string) {
     },
     ...forever,
   });
+}
+
+/**
+ * Starts loading a reading route's data before its code arrives, so the two
+ * download in parallel instead of one after the other. Fire-and-forget.
+ */
+export function prefetchChapter(script: QuranScriptId, chapter: number) {
+  void queryClient.prefetchQuery(chapterVersesQuery(script, chapter));
+}
+
+export function prefetchPages(script: QuranScriptId, pages: readonly number[]) {
+  for (const page of pages)
+    void queryClient.prefetchQuery(pageQuery(script, page));
 }

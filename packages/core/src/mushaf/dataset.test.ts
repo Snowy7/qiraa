@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHAPTERS } from "../quran/chapters";
 import { QURAN_SCRIPT_IDS } from "./scripts";
+import { chapterPageRange } from "./verses";
 import { assembleChapterVerses, pageOfVerse, wordToPlainText } from "./verses";
 import type { PageChunk, PageLines, ScriptIndex } from "./types";
 
@@ -57,7 +58,7 @@ describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
 
   it("reassembles every chapter with complete, ordered verses", () => {
     for (const chapter of CHAPTERS) {
-      const [first, last] = index.chapterPages[chapter.id - 1];
+      const [first, last] = chapterPageRange(id, chapter.id);
       const range = Array.from(
         { length: last - first + 1 },
         (_, i) => first + i,

@@ -15,7 +15,7 @@ import {
   getChapter,
   parseVerseKey,
   toVerseKey,
-} from "@noor/core";
+} from "@qiraa/core";
 import { VerseText } from "@/components/quran/verse-text";
 import { useTafsirId, useVerseTafsir } from "@/lib/api/queries";
 import { useI18n } from "@/lib/i18n";

@@ -19,11 +19,12 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
-      registerType: "autoUpdate",
+      // Ask before reloading so an update never interrupts reading or recitation.
+      registerType: "prompt",
       injectRegister: false,
       manifest: {
-        name: "Noor — Quran",
-        short_name: "Noor",
+        name: "Qiraa — Quran",
+        short_name: "Qiraa",
         description:
           "Read, listen and memorise the Quran. Accurate mushaf fonts, works offline.",
         theme_color: "#faf6ef",
@@ -83,7 +84,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       // Consume workspace packages from source: no separate build step needed.
       "@template/ui": path.resolve(__dirname, "../../packages/ui/src/index.ts"),
-      "@noor-data": coreData,
+      "@quran-data": coreData,
     },
   },
   server: {

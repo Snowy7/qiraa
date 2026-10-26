@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { getChapter } from "@noor/core";
+import { getChapter } from "@qiraa/core";
 import { cn } from "@/lib/utils";
 
 /** "Bismillah ir-Rahman ir-Raheem" in calligraphy. */

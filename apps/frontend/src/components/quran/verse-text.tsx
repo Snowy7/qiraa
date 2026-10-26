@@ -3,7 +3,7 @@ import type {
   AssembledVerse,
   QuranScript,
   WordText as StoredWord,
-} from "@noor/core";
+} from "@qiraa/core";
 import { useScriptFonts } from "@/lib/quran/fonts";
 import { cn } from "@/lib/utils";
 
@@ -119,7 +119,13 @@ export const VerseText = memo(function VerseText({
         </span>
       ))}
       {verse.end && (
-        <span style={fontOf(verse.end.page)}>{verse.end.text}</span>
+        <span
+          style={fontOf(verse.end.page)}
+          data-verse-end={verse.key}
+          className="cursor-pointer"
+        >
+          {verse.end.text}
+        </span>
       )}
     </p>
   );

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Coords } from "@noor/core";
+import type { Coords } from "@qiraa/core";
 
 export interface SavedLocation extends Coords {
   /** City label from reverse geocoding; null when it couldn't be resolved. */
@@ -93,7 +93,7 @@ export const useLocation = create<LocationState>()(
           );
         }),
     }),
-    { name: "noor-location", partialize: ({ location }) => ({ location }) },
+    { name: "qiraa-location", partialize: ({ location }) => ({ location }) },
   ),
 );
 

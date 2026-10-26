@@ -4,110 +4,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Noor** - A Quran reading, listening, and memorization PWA built as a monorepo with:
-- **Frontend**: React 19 + Vite + Tailwind CSS + shadcn/ui (PWA with offline support)
-- **Backend**: Convex (real-time database + serverless functions)
-- **Auth**: Clerk (optional, for cloud sync)
-- **Local Storage**: Dexie (IndexedDB) for offline-first data
+**Qiraa** (قراءة) — a Quran reading, listening and memorisation app. Offline-first PWA, monorepo:
 
-## Development Commands
+- **Frontend** (`apps/frontend`): React 19 + Vite + Tailwind + Radix primitives, PWA via `vite-plugin-pwa` (injectManifest).
+- **Core** (`packages/core`, `@qiraa/core`): platform-agnostic domain logic and the generated offline Quran dataset, shared with the mobile app.
+- **UI** (`packages/ui`, `@template/ui`): Button, Dialog (bottom sheet on phones / side panel), Input, Slider, Switch. Consumed from source.
+- **Mobile** (`apps/mobile`): Expo app, not yet migrated to `@qiraa/core`.
+- **Backend** (`packages/backend`): Convex, optional cloud sync.
+
+## Commands
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Initialize Convex (first time only)
-cd packages/backend && npx convex dev
-
-# Run both frontend and backend
-pnpm dev
-
-# Or run separately:
-cd apps/frontend && pnpm dev      # Frontend on port 3000
-cd packages/backend && pnpm dev   # Convex backend
-
-# Build all packages
-pnpm build
-
-# Lint
-pnpm lint
-
-# Deploy Convex to production
-cd packages/backend && pnpm deploy
+pnpm --filter @template/frontend dev        # assume it's already running
+pnpm --filter @template/frontend typecheck
+pnpm --filter @qiraa/core test               # dataset integrity + domain tests
+pnpm --filter @qiraa/core typecheck
+node packages/core/scripts/generate-data.ts  # regenerate packages/core/data
 ```
 
 ## Architecture
 
-### Data Flow
-The app uses an **offline-first** architecture:
-1. **Dexie (IndexedDB)** stores all user data locally for instant access
-2. **Convex** syncs data to the cloud when user is authenticated
-3. **Service Worker** (Workbox) caches Quran text and audio for offline use
+### Quran text never comes from an API
 
-### Audio System
-Uses **native HTML5 Audio** (not Howler.js) for better CORS compatibility. Audio is fetched from:
-- Islamic Network CDN
-- QuranicAudio
+`packages/core/data` holds, per script (`qpc-hafs`, `tajweed`, `qcf-v2`, `qcf-v1`, `indopak`), every mushaf page as lines of segments `[verseKey, firstWordPosition, words, endMarker?]` in 20-page chunk files, plus chapter page ranges, chapters, juz and English word-by-word. Each layout has its own line breaks (V1 and V2 differ). The web app lazy-imports chunks with `import.meta.glob` (`src/lib/quran/data.ts`); reader routes prefetch them in their loaders.
 
-### State Management
-- **Zustand** stores in `apps/frontend/src/lib/stores/`
-- **Dexie** database in `apps/frontend/src/lib/db/`
+### Rendering
 
-## Key Entry Points
+- `QURAN_SCRIPTS` (`core/src/mushaf/scripts.ts`) is the single source for fonts, line widths (`lineWidthEm`), size and line-height per script.
+- Mushaf lines are justified to `lineWidthEm` em; font-size is fitted with container units (`.mushaf-page` in `globals.css`). QCF scripts use one font per page, loaded by `src/lib/quran/fonts.ts`.
+- Words carry `data-word="chapter:verse:position"` and ayah ends `data-verse-end`; the reader handles taps with one delegated listener.
 
-| Purpose | Location |
-|---------|----------|
-| App router | `apps/frontend/src/router.tsx` |
-| Root layout | `apps/frontend/src/layouts/root-layout.tsx` |
-| Database schema | `packages/backend/convex/schema.ts` |
-| Local DB (Dexie) | `apps/frontend/src/lib/db/` |
-| Zustand stores | `apps/frontend/src/lib/stores/` |
-| UI components | `packages/ui/src/` |
-| PWA config | `apps/frontend/vite.config.ts` (VitePWA plugin) |
+### Audio
 
-## Data Model
+`src/lib/stores/audio.ts` plays one file per surah (quran.com audio API) with ayah/word timestamps: gapless, follows the reciter, single-ayah or continuous scope. Playback progress is read from the element (`useAudioTime`) and the recited word is highlighted in the DOM, so time updates don't re-render React.
 
-### Convex Tables (Cloud Sync)
-- `users` - Synced from Clerk
-- `readingProgress` - Per-surah reading progress
-- `bookmarks` - User bookmarks with notes/colors
-- `memorization` - Ayah memorization status & spaced repetition
-- `userSettings` - Theme, font sizes, reciter preferences
+### State and storage
 
-### Dexie Tables (Local Storage)
-Mirror the Convex schema for offline-first functionality.
+- Preferences: Zustand persisted to `localStorage` (`qiraa-preferences`), read synchronously at startup.
+- User data: Dexie (`NoorDB`, name kept so old installs keep their data) for collections, bookmarks, memorisation, reading history.
+- Online content (translations, tafsir, search, recitation timings): React Query with `networkMode: "offlineFirst"`, cached by the service worker.
+
+### Offline (`src/sw.ts`, `src/lib/offline.ts`)
+
+Precache: app shell, UI fonts, Hafs/IndoPak/surah-name fonts and the default script's data. Runtime cache: other data chunks and page fonts (cache-first), quran.com API (stale-while-revalidate), recitations (cache-first with range support). Settings → Offline downloads warm those caches.
+
+## Layout
+
+Phone: floating tab bar. Tablet (`md`): icon rail. Desktop (`xl`): labelled sidebar. Reader routes (`/quran/:chapter`, `/mushaf/:page`) keep the rail and add a surah panel from `lg`; wide landscape screens show a two-page mushaf spread.
 
 ## Routes
 
 ```
-/                   Home dashboard
-/quran              Surah index
-/quran/:surahId     Surah reader
-/bookmarks          User bookmarks
-/memorize           Memorization tracker
-/settings           App settings
-/search             Search Quran
-/prayer-times       Prayer times
-/qibla              Qibla compass
-/onboarding         First-time setup
-```
-
-## Environment Variables
-
-Required in `.env`:
-```
-CONVEX_DEPLOYMENT=dev:your-deployment
-VITE_CONVEX_URL=https://your-deployment.convex.cloud
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
-CLERK_SECRET_KEY=sk_test_xxxxx
-VITE_PUBLIC_POSTHOG_KEY=phc_xxxxx        # Optional: analytics
-VITE_PUBLIC_POSTHOG_HOST=https://...     # Optional: analytics
+/                  Home
+/quran             Surah / juz / page index
+/quran/:chapter    Verse-by-verse reader (?verse=N)
+/mushaf/:page      Mushaf reader
+/saved, /saved/:id Collections
+/memorize          Memorisation dashboard
+/memorize/review   Review session
+/prayer            Prayer times
+/search            Search
+/settings          Settings (incl. offline downloads)
 ```
 
 ## Code Patterns
 
-- Import UI components from `@template/ui`
-- Import Convex API from `@template/backend`
-- Use `@/` path alias for frontend src imports
-- Clerk auth components: `<SignedIn>`, `<SignedOut>`, `<UserButton>`
-- Wrap Clerk provider in `main.tsx` with `VITE_CLERK_PUBLISHABLE_KEY`
+- Import UI primitives from `@template/ui`, domain logic and types from `@qiraa/core`.
+- Use `@/` for frontend `src` imports.
+- UI strings live in `core/src/i18n/messages.ts` (English + Arabic); use `useI18n()`.
+- Use logical properties (`ms-`, `pe-`, `start-`) so layouts mirror in Arabic; media controls stay LTR.

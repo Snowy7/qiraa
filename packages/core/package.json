@@ -1,5 +1,5 @@
 {
-  "name": "@noor/core",
+  "name": "@qiraa/core",
   "version": "0.1.0",
   "private": true,
   "description": "Platform-agnostic Quran domain logic and offline dataset shared by the web and mobile apps.",

@@ -8,7 +8,7 @@ import {
   Play,
 } from "lucide-react";
 import { Button } from "@template/ui";
-import type { AssembledVerse, QuranScript } from "@noor/core";
+import type { AssembledVerse, QuranScript } from "@qiraa/core";
 import { VerseText } from "@/components/quran/verse-text";
 import { useI18n } from "@/lib/i18n";
 import { useAudio, useIsReciting } from "@/lib/stores/audio";
@@ -51,7 +51,7 @@ export const VerseItem = memo(function VerseItem({
   const togglePlay = () => {
     const audio = useAudio.getState();
     if (reciting) audio.toggle();
-    else audio.play(verse.key);
+    else void audio.play(verse.key, { scope: "ayah" });
   };
 
   return (

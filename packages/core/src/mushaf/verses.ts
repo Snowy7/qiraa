@@ -1,12 +1,26 @@
+import chapterPagesJson from "../../data/chapter-pages.json";
 import { parseVerseKey, verseOrdinal } from "../quran/verse-key";
+import type { QuranScriptId } from "./scripts";
 import type { PageLines, ScriptIndex, WordText } from "./types";
 
+/** Pages per data chunk file (must match scripts/generate-data.ts). */
+export const PAGES_PER_CHUNK = 20;
+
+const CHAPTER_PAGES: Record<QuranScriptId, readonly (readonly number[])[]> =
+  chapterPagesJson;
+
+/** `[firstPage, lastPage]` of a chapter in a script's layout (bundled, no fetch). */
+export function chapterPageRange(
+  script: QuranScriptId,
+  chapter: number,
+): readonly [number, number] {
+  const [first, last] = CHAPTER_PAGES[script][chapter - 1];
+  return [first, last];
+}
+
 /** First page of the chunk file that holds `page`. */
-export function chunkStartFor(
-  index: Pick<ScriptIndex, "pagesPerChunk">,
-  page: number,
-): number {
-  return page - ((page - 1) % index.pagesPerChunk);
+export function chunkStartFor(page: number): number {
+  return page - ((page - 1) % PAGES_PER_CHUNK);
 }
 
 /** Mushaf page on which a verse starts, in the given script's layout. */

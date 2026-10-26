@@ -7,7 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@template/ui";
-import { methodForLocation, type PrayerName } from "@noor/core";
+import { methodForLocation, type PrayerName } from "@qiraa/core";
 import { Page, PageHeader } from "@/components/page";
 import { PrayerHero } from "@/components/prayer/prayer-hero";
 import { usePrayerDay, useTimeFormatter } from "@/lib/hooks/use-prayer";

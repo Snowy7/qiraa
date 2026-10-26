@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import {
   Link,
   useNavigate,
@@ -14,7 +14,7 @@ import {
   pageOfVerse,
   toVerseKey,
   type Chapter,
-} from "@noor/core";
+} from "@qiraa/core";
 import { DownloadRecitation } from "@/components/audio/download-recitation";
 import { MosqueSkyline } from "@/components/icons";
 import { Bismillah, SurahName } from "@/components/quran/ornaments";
@@ -71,6 +71,10 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
     [chapter.id],
   );
 
+  const rendered = useProgressiveCount(
+    verses?.length ?? 0,
+    (targetVerse ?? 0) + 6,
+  );
   const visibleVerse = useVisibleVerse(chapter.id, !!verses);
   useFollowRecitation(chapter.id, !!verses);
   useScrollToVerse(targetVerse, !!verses);
@@ -162,7 +166,7 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
           </div>
         )}
 
-        {verses?.map((verse) => (
+        {verses?.slice(0, rendered).map((verse) => (
           <VerseItem
             key={verse.key}
             verse={verse}
@@ -290,4 +294,18 @@ function useFollowRecitation(chapterId: number, ready: boolean) {
       .getElementById(`ayah-${verse}`)
       ?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [verseKey, follow, ready, chapterId, navigate]);
+}
+
+/**
+ * Renders the first ayahs immediately (enough to reach `?verse=`) and the
+ * rest of the surah right after first paint, as an interruptible update.
+ */
+function useProgressiveCount(total: number, initial: number) {
+  const [count, setCount] = useState(Math.max(12, initial));
+  useEffect(() => {
+    if (count >= total) return;
+    const timer = setTimeout(() => startTransition(() => setCount(total)), 60);
+    return () => clearTimeout(timer);
+  }, [count, total]);
+  return count;
 }

@@ -17,7 +17,7 @@ import {
   DialogTitle,
   Slider,
 } from "@template/ui";
-import { getChapter, getReciter, parseVerseKey } from "@noor/core";
+import { getChapter, getReciter, parseVerseKey } from "@qiraa/core";
 import { SurahName } from "@/components/quran/ornaments";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -60,7 +60,7 @@ function PlayPauseIcon() {
   return status === "playing" ? (
     <Pause className="fill-current" />
   ) : (
-    <Play className="translate-x-px fill-current rtl:-translate-x-px" />
+    <Play className="translate-x-px fill-current" />
   );
 }
 
@@ -69,7 +69,9 @@ export function AudioPlayer({ aboveTabBar }: { aboveTabBar: boolean }) {
   const { t, locale } = useI18n();
   const verseKey = useAudio((s) => s.verseKey);
   const status = useAudio((s) => s.status);
-  const { toggle, next, previous, stop } = useAudio.getState();
+  const finishedAyah = useAudio((s) => s.finishedAyah);
+  const { toggle, next, previous, stop, continueReciting } =
+    useAudio.getState();
   const reciterId = usePreferences((s) => s.reciterId);
   const [expanded, setExpanded] = useState(false);
 
@@ -115,32 +117,42 @@ export function AudioPlayer({ aboveTabBar }: { aboveTabBar: boolean }) {
             </span>
           </button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={previous}
-            aria-label={t("previous")}
-            className="hidden rtl:rotate-180 md:inline-flex"
-          >
-            <SkipBack className="fill-current" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggle}
-            aria-label={status === "playing" ? t("pause") : t("play")}
-          >
-            <PlayPauseIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={next}
-            aria-label={t("next")}
-            className="rtl:rotate-180"
-          >
-            <SkipForward className="fill-current" />
-          </Button>
+          {/* Media controls keep their physical order in every language. */}
+          <div dir="ltr" className="flex items-center">
+            {finishedAyah ? (
+              <Button size="sm" onClick={continueReciting} className="me-1">
+                {t("continueReciting")} <SkipForward className="fill-current" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={previous}
+                  aria-label={t("previous")}
+                  className="hidden md:inline-flex"
+                >
+                  <SkipBack className="fill-current" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggle}
+                  aria-label={status === "playing" ? t("pause") : t("play")}
+                >
+                  <PlayPauseIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={next}
+                  aria-label={t("next")}
+                >
+                  <SkipForward className="fill-current" />
+                </Button>
+              </>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -244,7 +256,7 @@ function NowPlaying({
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div dir="ltr" className="flex items-center justify-between">
             <Button
               variant="ghost"
               size="icon"
@@ -260,7 +272,7 @@ function NowPlaying({
               size="icon"
               onClick={previous}
               aria-label={t("previous")}
-              className="size-12 rtl:rotate-180"
+              className="size-12"
             >
               <SkipBack className="size-6 fill-current" />
             </Button>
@@ -277,7 +289,7 @@ function NowPlaying({
               size="icon"
               onClick={next}
               aria-label={t("next")}
-              className="size-12 rtl:rotate-180"
+              className="size-12"
             >
               <SkipForward className="size-6 fill-current" />
             </Button>

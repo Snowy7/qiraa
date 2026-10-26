@@ -130,3 +130,10 @@ export function wordAt(verse: VerseTiming, ms: number): number | null {
     if (ms >= from && ms < to) return position;
   return null;
 }
+
+/** Pronunciation of a single word (quran.com word-by-word audio, Alafasy). */
+export function wordAudioUrl(verseKey: string, position: number): string {
+  const [chapter, verse] = verseKey.split(":").map(Number);
+  const pad = (n: number) => String(n).padStart(3, "0");
+  return `https://audio.qurancdn.com/wbw/${pad(chapter)}_${pad(verse)}_${pad(position)}.mp3`;
+}

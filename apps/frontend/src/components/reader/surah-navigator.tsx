@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
-import { searchChapters, type Chapter } from "@noor/core";
+import { searchChapters, type Chapter } from "@qiraa/core";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
