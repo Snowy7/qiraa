@@ -54,6 +54,8 @@ export default defineConfig({
         ],
       },
       injectManifest: {
+        // Only link previews use the share image.
+        globIgnores: ["og-image.png"],
         globPatterns: [
           "**/*.{js,css,html,ico,png,svg,webmanifest}",
           "assets/*.woff2",

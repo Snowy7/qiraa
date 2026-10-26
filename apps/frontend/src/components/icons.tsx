@@ -40,16 +40,24 @@ export function MosqueIcon(props: IconProps) {
   );
 }
 
-/** Eight-pointed star (rub el hizb), the Qiraa brand mark. */
+/**
+ * The Qiraa mark: a pointed medallion like the ornaments in a mushaf's
+ * margins. The app icons and favicon in public/ are drawn from the same shape.
+ */
 export function BrandMark(props: IconProps) {
   return (
-    <svg viewBox="0 0 32 32" {...props}>
-      <path
-        fill="currentColor"
-        d="M16 1.5 20.2 6h6.3v6.3L31 16.5l-4.5 4.2v6.3h-6.3L16 31.5l-4.2-4.5H5.5v-6.3L1 16.5l4.5-4.2V6h6.3Z"
-      />
-      <circle cx="16" cy="16.5" r="5.2" fill="hsl(var(--background))" />
-      <circle cx="17.8" cy="15.2" r="4.1" fill="currentColor" />
+    <svg
+      viewBox="0 0 512 512"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={30}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M256 34C308 78 356 123 400 158C421 176 428 212 428 256C428 300 421 336 400 354C356 389 308 434 256 478C204 434 156 389 112 354C91 336 84 300 84 256C84 212 91 176 112 158C156 123 204 78 256 34Z" />
+      <circle cx="256" cy="256" r="64" />
+      <path d="M280 197L324 93M315 232L419 189M315 280L419 323M280 315L324 419M232 315L188 419M197 280L93 323M197 232L93 189M232 197L188 93" />
     </svg>
   );
 }
