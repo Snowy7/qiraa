@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Button } from "@template/ui";
 import {
   QURAN_SCRIPTS,
+  DEFAULT_SCRIPT,
   QURAN_SCRIPT_IDS,
   getReciter,
   type QuranScriptId,
@@ -133,11 +134,14 @@ function DownloadRow({
   label,
   hint,
   start,
+  builtIn = false,
 }: {
   id: string;
   label: string;
   hint: string;
   start: () => void;
+  /** Precached with the app (see vite.config.ts), so nothing to download. */
+  builtIn?: boolean;
 }) {
   const { t } = useI18n();
   const job = useDownloads((s) => s.jobs[id]);
@@ -163,10 +167,12 @@ function DownloadRow({
           </div>
         )}
       </div>
-      {job?.status === "done" ? (
+      {builtIn || job?.status === "done" ? (
         <span className="flex items-center gap-1.5 text-sm font-semibold text-primary">
           <CheckCircle2 className="size-5" />{" "}
-          <span className="hidden sm:inline">{t("downloaded")}</span>
+          <span className="hidden sm:inline">
+            {builtIn ? t("builtIn") : t("downloaded")}
+          </span>
         </span>
       ) : (
         <Button
@@ -182,10 +188,11 @@ function DownloadRow({
   );
 }
 
-const FONT_SIZES: Record<QuranScriptId, string> = {
-  "qpc-hafs": "90 KB",
-  tajweed: "90 KB",
-  indopak: "85 KB",
+/** Compressed download per script (layout data plus fonts), measured from the build. */
+const DOWNLOAD_SIZES: Record<QuranScriptId, string> = {
+  "qpc-hafs": "0.4 MB",
+  tajweed: "0.5 MB",
+  indopak: "0.4 MB",
   "qcf-v2": "94 MB",
   "qcf-v1": "47 MB",
 };
@@ -228,12 +235,9 @@ function OfflineSection() {
           <DownloadRow
             key={id}
             id={jobId.script(id)}
-            label={t("mushafFonts", { script: QURAN_SCRIPTS[id].name[locale] })}
-            hint={
-              QURAN_SCRIPTS[id].font.kind === "page"
-                ? t("mushafFontsHint", { size: FONT_SIZES[id] })
-                : FONT_SIZES[id]
-            }
+            label={QURAN_SCRIPTS[id].name[locale]}
+            hint={t("scriptDownloadHint", { size: DOWNLOAD_SIZES[id] })}
+            builtIn={id === DEFAULT_SCRIPT}
             start={() => downloadScript(id)}
           />
         ))}

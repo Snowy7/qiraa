@@ -52,7 +52,11 @@ export default function PrayerPage() {
         }
       />
       <Page className="grid grid-cols-1 gap-5 lg:grid-cols-[1.25fr,1fr] lg:items-start">
-        <PrayerHero size="large" className="min-h-[360px] lg:sticky lg:top-6" />
+        <PrayerHero
+          size="large"
+          showDay={false}
+          className="min-h-[360px] lg:sticky lg:top-6"
+        />
 
         {prayers && (
           <div>

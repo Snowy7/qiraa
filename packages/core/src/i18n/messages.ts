@@ -248,18 +248,18 @@ export const MESSAGES = {
   reading: { en: "Reading", ar: "القراءة" },
   offlineSection: { en: "Offline", ar: "دون اتصال" },
   offlineIntro: {
-    en: "Arabic text for every script is built in. Download the rest to read and listen without a connection.",
-    ar: "النص العربي لكل الخطوط مدمج في التطبيق. نزّل الباقي للقراءة والاستماع دون اتصال.",
+    en: "Uthmani Hafs is built in. Download other scripts, a translation or recitations to use them without a connection.",
+    ar: "الرسم العثماني (حفص) مدمج في التطبيق. نزّل الخطوط الأخرى أو الترجمة أو التلاوات لاستخدامها دون اتصال.",
   },
   storageUsed: {
     en: "{used} used on this device",
     ar: "المستخدم على هذا الجهاز: {used}",
   },
-  mushafFonts: { en: "{script} fonts", ar: "خطوط {script}" },
-  mushafFontsHint: {
-    en: "604 page fonts, about {size}",
-    ar: "٦٠٤ خطًا للصفحات، نحو {size}",
+  scriptDownloadHint: {
+    en: "Text and fonts, about {size}",
+    ar: "النص والخطوط، نحو {size}",
   },
+  builtIn: { en: "Built in", ar: "مدمج" },
   translationDownload: { en: "{name} translation", ar: "ترجمة {name}" },
   translationDownloadHint: { en: "All 114 surahs", ar: "جميع السور الـ١١٤" },
   surahAudio: { en: "Recitation by {name}", ar: "تلاوة {name}" },

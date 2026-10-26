@@ -14,9 +14,12 @@ import { cn } from "@/lib/utils";
 export function PrayerHero({
   className,
   size = "default",
+  showDay = true,
 }: {
   className?: string;
   size?: "default" | "large";
+  /** The strip of today's five prayers (hidden where a full list is shown). */
+  showDay?: boolean;
 }) {
   const { t, locale } = useI18n();
   const { location, prayers, next, countdown } = usePrayerDay();
@@ -88,7 +91,7 @@ export function PrayerHero({
         )
       )}
 
-      {prayers && (
+      {prayers && showDay && (
         <ol className="relative mt-auto grid grid-cols-5 gap-1 px-3 pb-4 md:gap-2 md:px-5 md:pb-5">
           {prayers
             .filter((p) => p.name !== "sunrise")
