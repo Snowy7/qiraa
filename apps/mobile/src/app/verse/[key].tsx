@@ -42,7 +42,7 @@ export default function VerseSheet() {
   if (!chapter) return null;
 
   return (
-    <ScrollView contentContainerClassName="pb-10" scrollEnabled={false}>
+    <ScrollView contentContainerClassName="pb-10">
       <SheetHeader title={`${locale === "ar" ? chapter.nameArabic : chapter.nameSimple} · ${key}`} />
       <View className="flex-row gap-2 px-6 py-3">
         <SheetAction

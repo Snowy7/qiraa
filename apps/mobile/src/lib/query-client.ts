@@ -19,13 +19,20 @@ export const queryClient = new QueryClient({
 });
 
 /**
- * Keeps online content (translations, tafsir) on disk, one entry per query,
- * restored lazily when a query first runs. Anything read once stays readable
- * offline; entries expire after 30 days unless read again.
+ * Keeps online content (tafsir, recitation timings, the translation list) on
+ * disk, one entry per query, restored lazily when a query first runs. Anything
+ * read once stays readable offline; entries expire after 30 days unless read again.
  */
 export const diskPersister = experimental_createQueryPersister({
   storage: Storage,
   maxAge: 30 * DAY,
+  prefix: PERSISTER_PREFIX,
+}).persisterFn;
+
+/** Like `diskPersister` but never expiring, for text that doesn't change (translations), so downloads stay offline. */
+export const durablePersister = experimental_createQueryPersister({
+  storage: Storage,
+  maxAge: Infinity,
   prefix: PERSISTER_PREFIX,
 }).persisterFn;
 

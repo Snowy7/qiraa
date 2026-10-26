@@ -52,8 +52,20 @@ async function ensurePermission(): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
-/** Replaces every scheduled prayer alert with fresh ones from today's location. */
-export async function reschedulePrayerAlerts() {
+let scheduling = Promise.resolve();
+let latest = 0;
+
+/**
+ * Replaces every scheduled prayer alert with fresh ones from today's location.
+ * Runs one at a time (each cancels, then adds), skipping any already superseded.
+ */
+export function reschedulePrayerAlerts(): Promise<void> {
+  const run = ++latest;
+  scheduling = scheduling.then(() => (run === latest ? schedule() : undefined)).catch(() => {});
+  return scheduling;
+}
+
+async function schedule() {
   await Notifications.cancelAllScheduledNotificationsAsync();
   const { location } = usePrayerLocation.getState();
   const { enabled } = usePrayerAlerts.getState();

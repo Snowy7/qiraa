@@ -8,7 +8,7 @@ import {
 } from "@qiraa/core";
 import { useI18n } from "@/lib/i18n";
 import { usePreferences } from "@/lib/preferences";
-import { diskPersister } from "@/lib/query-client";
+import { diskPersister, durablePersister } from "@/lib/query-client";
 
 /*
  * Online content from the quran.com API. Translations and tafsir persist to
@@ -33,7 +33,7 @@ export const chapterTranslationQuery = (translationId: number, chapter: number) 
       fetchChapterTranslation(translationId, chapter, signal),
     staleTime: Infinity,
     gcTime: DAY,
-    persister: diskPersister,
+    persister: durablePersister,
   });
 
 export function useChapterTranslation(chapter: number, enabled: boolean) {

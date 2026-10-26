@@ -38,6 +38,7 @@ export default function QiblaScreen() {
 
   useEffect(() => {
     let subscription: Location.LocationSubscription | undefined;
+    let closed = false;
     const timer = setTimeout(() => setUnavailable(true), 4000);
     Location.watchHeadingAsync((value) => {
       const degrees = value.trueHeading >= 0 ? value.trueHeading : value.magHeading;
@@ -46,10 +47,13 @@ export default function QiblaScreen() {
       setHeading(degrees);
     })
       .then((s) => {
-        subscription = s;
+        // The screen may have closed while the compass was starting.
+        if (closed) s.remove();
+        else subscription = s;
       })
       .catch(() => setUnavailable(true));
     return () => {
+      closed = true;
       clearTimeout(timer);
       subscription?.remove();
     };

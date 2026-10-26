@@ -1,12 +1,17 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { reviewRecord, summarizeHifz, type HifzRecord, type ReviewRating } from "@qiraa/core";
+import { reviewDay, reviewRecord, summarizeHifz, type HifzRecord, type ReviewRating } from "@qiraa/core";
 import { persistStorage } from "@/lib/storage";
+
+/** Review days kept for the streak: a year is plenty. */
+const MAX_REVIEW_DAYS = 400;
 
 interface HifzStore {
   /** Memorisation records keyed by verse key. */
   records: Record<string, HifzRecord>;
+  /** Days with at least one review (`reviewDay`), oldest first. */
+  reviewDays: string[];
   recordReview: (verseKey: string, rating: ReviewRating) => void;
 }
 
@@ -15,25 +20,32 @@ export const useHifz = create<HifzStore>()(
   persist(
     (set, get) => ({
       records: {},
-      recordReview: (verseKey, rating) =>
+      reviewDays: [],
+      recordReview: (verseKey, rating) => {
+        const now = Date.now();
+        const today = reviewDay(now);
+        const { records, reviewDays } = get();
         set({
-          records: {
-            ...get().records,
-            [verseKey]: reviewRecord(get().records[verseKey], rating, Date.now()),
-          },
-        }),
+          records: { ...records, [verseKey]: reviewRecord(records[verseKey], rating, now) },
+          reviewDays: reviewDays.at(-1) === today ? reviewDays : [...reviewDays, today].slice(-MAX_REVIEW_DAYS),
+        });
+      },
     }),
     {
       name: "qiraa-hifz",
       storage: persistStorage,
-      partialize: ({ records }) => ({ records }),
+      partialize: ({ records, reviewDays }) => ({ records, reviewDays }),
     },
   ),
 );
 
 export function useHifzSummary() {
   const records = useHifz((s) => s.records);
-  return useMemo(() => summarizeHifz(Object.values(records), new Date()), [records]);
+  const reviewDays = useHifz((s) => s.reviewDays);
+  return useMemo(
+    () => summarizeHifz(Object.values(records), new Date(), reviewDays),
+    [records, reviewDays],
+  );
 }
 
 /** Verses due for review, the most overdue first. */

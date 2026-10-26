@@ -52,15 +52,15 @@ export function useAppLifecycle() {
   useQuickActionRouting();
 
   useEffect(() => {
-    refreshLocationIfGranted().finally(() => reschedulePrayerAlerts().catch(() => {}));
+    refreshLocationIfGranted().finally(() => reschedulePrayerAlerts());
     updateQuickActions();
 
     // Alerts are scheduled days ahead; top them up whenever the app returns.
     const appState = AppState.addEventListener("change", (state) => {
-      if (state === "active") reschedulePrayerAlerts().catch(() => {});
+      if (state === "active") reschedulePrayerAlerts();
     });
     const locationChanged = usePrayerLocation.subscribe((s, previous) => {
-      if (s.location !== previous.location) reschedulePrayerAlerts().catch(() => {});
+      if (s.location !== previous.location) reschedulePrayerAlerts();
     });
     const positionChanged = useReadingPosition.subscribe(updateQuickActions);
     const tapped = Notifications.addNotificationResponseReceivedListener((response) => {

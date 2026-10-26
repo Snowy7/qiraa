@@ -37,8 +37,9 @@ export function MiniPlayer({ floating = false }: { floating?: boolean }) {
         <Text weight="semibold" numberOfLines={1} className="text-[15px]">
           {locale === "ar" ? chapter.nameArabic : chapter.nameSimple} · {n(ref.verse)}
         </Text>
-        <Text numberOfLines={1} className="text-xs text-muted-foreground">
-          {getReciter(reciterId).name[locale]}
+        {/* Play retries after a failure. */}
+        <Text numberOfLines={1} className={cn("text-xs", status === "error" ? "text-destructive" : "text-muted-foreground")}>
+          {status === "error" ? t("audioFailed") : getReciter(reciterId).name[locale]}
         </Text>
       </View>
       {status === "loading" ? (

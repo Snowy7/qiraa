@@ -79,15 +79,15 @@ const timeListeners = new Set<() => void>();
 
 const seconds = (ms: number) => ms / 1000;
 
-/** Resolves once the player has the new source ready to seek and play. */
+/** Resolves once the player has the new source ready to seek and play; rejects if it can't load. */
 function whenLoaded(): Promise<void> {
   if (player.isLoaded) return Promise.resolve();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const subscription = player.addListener("playbackStatusUpdate", (status) => {
-      if (status.isLoaded) {
-        subscription.remove();
-        resolve();
-      }
+      if (!status.isLoaded && !status.error) return;
+      subscription.remove();
+      if (status.error) reject(new Error(status.error));
+      else resolve();
     });
   });
 }
@@ -130,6 +130,7 @@ export const useAudio = create<AudioState>((set, get) => ({
         recitation.verses.findIndex((v) => v.verseKey === verseKey),
       );
       await player.seekTo(options?.fromStart ? 0 : seconds(recitation.verses[currentIndex].from));
+      if (id !== request) return;
       player.setPlaybackRate(usePreferences.getState().playbackRate);
       player.play();
       showOnLockScreen(verseKey);
@@ -190,6 +191,10 @@ function onStatus(status: AudioStatus) {
   const state = useAudio.getState();
   if (!loaded || !state.verseKey) return;
 
+  if (status.error) {
+    if (state.status !== "error") useAudio.setState({ status: "error", word: null });
+    return;
+  }
   if (status.didJustFinish) return onFinished();
 
   const { verses } = loaded.recitation;
