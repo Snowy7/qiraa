@@ -1,4 +1,10 @@
-import { startTransition, useEffect, useRef, useState } from "react";
+import {
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Link,
   useNavigate,
@@ -19,6 +25,7 @@ import { DownloadRecitation } from "@/components/audio/download-recitation";
 import { MosqueSkyline } from "@/components/icons";
 import { Bismillah, SurahName } from "@/components/quran/ornaments";
 import { ReaderLayout } from "@/components/reader/reader-layout";
+import { NextSurahPull } from "@/components/reader/next-surah-pull";
 import { VerseItem } from "@/components/reader/verse-item";
 import NotFoundPage from "@/pages/not-found";
 import { useChapterTranslation } from "@/lib/api/queries";
@@ -212,6 +219,7 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
             )}
           </nav>
         )}
+        {verses && next && <NextSurahPull next={next} />}
       </div>
     </ReaderLayout>
   );
@@ -258,8 +266,15 @@ function useVisibleVerse(chapterId: number, ready: boolean, rendered: number) {
   return visible;
 }
 
-/** Scrolls to `?verse=` once, correcting after deferred verses render. */
+/**
+ * Scrolls to `?verse=` once, correcting after deferred verses render. A
+ * surah opened without one starts at its top.
+ */
 function useScrollToVerse(verse: number | null, ready: boolean) {
+  useLayoutEffect(() => {
+    if (!verse) window.scrollTo({ top: 0 });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!ready || !verse) return;
     const scroll = () =>

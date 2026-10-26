@@ -106,6 +106,11 @@ export const MESSAGES = {
   wordByWordHint: { en: "Meaning under each word", ar: "معنى كل كلمة تحتها" },
   previousSurah: { en: "Previous surah", ar: "السورة السابقة" },
   nextSurah: { en: "Next surah", ar: "السورة التالية" },
+  keepScrollingForSurah: {
+    en: "Keep scrolling for {name}",
+    ar: "تابع التمرير إلى سورة {name}",
+  },
+  releaseForSurah: { en: "Release for {name}", ar: "اترك لفتح سورة {name}" },
   previousPage: { en: "Previous page", ar: "الصفحة السابقة" },
   nextPage: { en: "Next page", ar: "الصفحة التالية" },
   chooseSurah: { en: "Choose surah", ar: "اختر السورة" },
