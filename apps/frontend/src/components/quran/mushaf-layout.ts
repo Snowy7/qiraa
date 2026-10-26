@@ -16,6 +16,9 @@ export function stageStyle(script: QuranScript, layout: MushafLayout | null) {
     "--line-em": script.lineWidthEm,
     "--mushaf-lh": mushafLineHeight(script),
     "--mushaf-size": layout ? `${layout.size}px` : undefined,
+    // Flowing text is spaced by the font's space: about 0.2–0.3em in every
+    // script but the QCF V1 page fonts, whose space is 0.04em wide.
+    "--flow-word-spacing": script.id === "qcf-v1" ? "0.2em" : "0",
   } as CSSProperties;
 }
 
