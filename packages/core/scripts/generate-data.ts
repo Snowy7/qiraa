@@ -17,6 +17,8 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseTajweed } from "../src/mushaf/tajweed.ts";
+import type { WordText } from "../src/mushaf/types.ts";
 
 const API = "https://api.qurancdn.com/api/qdc";
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
@@ -39,22 +41,8 @@ type ApiWord = {
 };
 type ApiVerse = { verse_key: string; words: ApiWord[] };
 
-type TajweedRun = [text: string] | [text: string, rule: string];
-type WordText = string | TajweedRun[];
 type Segment = [verseKey: string, words: WordText[], end?: string];
 type Line = [lineNumber: number, segments: Segment[]];
-
-/** Converts `<rule class=x>..</rule>` markup into typed runs (no HTML at runtime). */
-function parseTajweed(markup: string): WordText {
-  const runs: TajweedRun[] = [];
-  const pattern = /<rule class=([\w-]+)>(.*?)<\/rule>|([^<]+)/g;
-  for (const match of markup.matchAll(pattern)) {
-    if (match[1]) runs.push([match[2], match[1]]);
-    else if (match[3]) runs.push([match[3]]);
-  }
-  if (runs.length === 1 && runs[0].length === 1) return runs[0][0];
-  return runs;
-}
 
 const stripTags = (text: string) => text.replace(/<[^>]+>/g, "");
 

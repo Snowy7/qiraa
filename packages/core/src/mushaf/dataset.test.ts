@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHAPTERS } from "../quran/chapters";
 import { QURAN_SCRIPT_IDS } from "./scripts";
-import { assembleChapterVerses, pageOfVerse } from "./verses";
+import { assembleChapterVerses, pageOfVerse, wordToPlainText } from "./verses";
 import type { PageChunk, PageLines, ScriptIndex } from "./types";
 
 const DATA = join(import.meta.dirname, "../../data/scripts");
@@ -29,6 +29,18 @@ describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
 
   it("has every page of the layout", () => {
     expect(pages.size).toBe(index.pageCount);
+  });
+
+  it("contains no leftover markup", () => {
+    for (const lines of pages.values()) {
+      for (const [, segments] of lines) {
+        for (const [key, words, end] of segments) {
+          for (const word of [...words, end ?? ""]) {
+            expect(wordToPlainText(word), key).not.toMatch(/[<>]/);
+          }
+        }
+      }
+    }
   });
 
   it("reassembles every chapter with complete, ordered verses", () => {
