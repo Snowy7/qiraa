@@ -3,7 +3,12 @@
  * Every script ships a complete offline layout in `data/scripts/<id>`.
  */
 
-export type QuranScriptId = "qpc-hafs" | "qcf-v2" | "qcf-v1" | "tajweed" | "indopak";
+export type QuranScriptId =
+  | "qpc-hafs"
+  | "qcf-v2"
+  | "qcf-v1"
+  | "tajweed"
+  | "indopak";
 
 export type ScriptFont =
   /** One font file for the whole Quran. Paths are relative to the font root. */
@@ -25,6 +30,13 @@ export interface QuranScript {
   lineWidthEm: number;
   /** Lines that are centred instead of justified (Madani layouts only). */
   centeredLines: "madani" | "none";
+  /**
+   * Font-size multiplier that makes this script look as large as Uthmani Hafs
+   * (glyph fonts draw bigger or smaller at the same font-size).
+   */
+  sizeAdjust: number;
+  /** Comfortable line-height for flowing (verse-by-verse) text. */
+  lineHeight: number;
 }
 
 export const QURAN_SCRIPTS: Record<QuranScriptId, QuranScript> = {
@@ -35,10 +47,16 @@ export const QURAN_SCRIPTS: Record<QuranScriptId, QuranScript> = {
       en: "KFGQPC Uthmanic script. Crisp at any size.",
       ar: "خط مجمع الملك فهد العثماني. واضح بأي حجم.",
     },
-    font: { kind: "static", family: "UthmanicHafs", file: "hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2" },
+    font: {
+      kind: "static",
+      family: "UthmanicHafs",
+      file: "hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2",
+    },
     pageCount: 604,
     lineWidthEm: 18.5,
     centeredLines: "madani",
+    sizeAdjust: 1,
+    lineHeight: 2.15,
   },
   "qcf-v2": {
     id: "qcf-v2",
@@ -51,6 +69,8 @@ export const QURAN_SCRIPTS: Record<QuranScriptId, QuranScript> = {
     pageCount: 604,
     lineWidthEm: 17.5,
     centeredLines: "madani",
+    sizeAdjust: 0.86,
+    lineHeight: 2,
   },
   "qcf-v1": {
     id: "qcf-v1",
@@ -63,6 +83,8 @@ export const QURAN_SCRIPTS: Record<QuranScriptId, QuranScript> = {
     pageCount: 604,
     lineWidthEm: 15,
     centeredLines: "madani",
+    sizeAdjust: 1.02,
+    lineHeight: 1.95,
   },
   tajweed: {
     id: "tajweed",
@@ -71,10 +93,16 @@ export const QURAN_SCRIPTS: Record<QuranScriptId, QuranScript> = {
       en: "Uthmani Hafs with colour-coded tajweed rules.",
       ar: "الرسم العثماني مع تلوين أحكام التجويد.",
     },
-    font: { kind: "static", family: "UthmanicHafs", file: "hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2" },
+    font: {
+      kind: "static",
+      family: "UthmanicHafs",
+      file: "hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2",
+    },
     pageCount: 604,
     lineWidthEm: 18.5,
     centeredLines: "madani",
+    sizeAdjust: 1,
+    lineHeight: 2.15,
   },
   indopak: {
     id: "indopak",
@@ -91,6 +119,8 @@ export const QURAN_SCRIPTS: Record<QuranScriptId, QuranScript> = {
     pageCount: 610,
     lineWidthEm: 17.3,
     centeredLines: "none",
+    sizeAdjust: 0.96,
+    lineHeight: 2.35,
   },
 };
 
@@ -129,7 +159,14 @@ const MADANI_CENTERED_LINES: Readonly<Record<number, readonly number[]>> = {
 };
 
 /** Whether a mushaf line is centred rather than justified edge to edge. */
-export function isCenteredLine(script: QuranScript, page: number, line: number): boolean {
+export function isCenteredLine(
+  script: QuranScript,
+  page: number,
+  line: number,
+): boolean {
   if (script.centeredLines === "none") return false;
-  return MADANI_CENTERED_PAGES.has(page) || (MADANI_CENTERED_LINES[page]?.includes(line) ?? false);
+  return (
+    MADANI_CENTERED_PAGES.has(page) ||
+    (MADANI_CENTERED_LINES[page]?.includes(line) ?? false)
+  );
 }

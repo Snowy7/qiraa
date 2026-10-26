@@ -5,7 +5,14 @@ import {
   type CalculationParameters,
 } from "adhan";
 
-export const PRAYER_NAMES = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"] as const;
+export const PRAYER_NAMES = [
+  "fajr",
+  "sunrise",
+  "dhuhr",
+  "asr",
+  "maghrib",
+  "isha",
+] as const;
 export type PrayerName = (typeof PRAYER_NAMES)[number];
 
 export interface PrayerTime {
@@ -21,11 +28,16 @@ export interface Coords {
 /** Picks the calculation method most communities in the region follow. */
 export function methodForLocation({ lat, lng }: Coords): CalculationParameters {
   if (lng < -30 && lat > 15) return CalculationMethod.NorthAmerica();
-  if (lat > 36 && lat < 42 && lng > 26 && lng < 45) return CalculationMethod.Turkey();
-  if (lat > 12 && lat < 35 && lng > 35 && lng < 60) return CalculationMethod.UmmAlQura();
-  if (lat > 22 && lat < 32 && lng > 24 && lng < 37) return CalculationMethod.Egyptian();
-  if (lat > 5 && lat < 40 && lng > 60 && lng < 95) return CalculationMethod.Karachi();
-  if (lat > -15 && lat < 15 && lng > 95 && lng < 145) return CalculationMethod.Singapore();
+  if (lat > 36 && lat < 42 && lng > 26 && lng < 45)
+    return CalculationMethod.Turkey();
+  if (lat > 12 && lat < 35 && lng > 35 && lng < 60)
+    return CalculationMethod.UmmAlQura();
+  if (lat > 22 && lat < 32 && lng > 24 && lng < 37)
+    return CalculationMethod.Egyptian();
+  if (lat > 5 && lat < 40 && lng > 60 && lng < 95)
+    return CalculationMethod.Karachi();
+  if (lat > -15 && lat < 15 && lng > 95 && lng < 145)
+    return CalculationMethod.Singapore();
   return CalculationMethod.MuslimWorldLeague();
 }
 
@@ -61,9 +73,16 @@ export function formatCountdown(ms: number): string {
 
 /** Hijri date via the platform's Islamic (Umm al-Qura) calendar. */
 export function formatHijriDate(date: Date, locale: "en" | "ar"): string {
-  const tag = locale === "ar" ? "ar-SA-u-ca-islamic-umalqura-nu-arab" : "en-u-ca-islamic-umalqura";
+  const tag =
+    locale === "ar"
+      ? "ar-SA-u-ca-islamic-umalqura-nu-arab"
+      : "en-u-ca-islamic-umalqura";
   try {
-    return new Intl.DateTimeFormat(tag, { day: "numeric", month: "long", year: "numeric" }).format(date);
+    return new Intl.DateTimeFormat(tag, {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(date);
   } catch {
     return "";
   }

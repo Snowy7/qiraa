@@ -1,217 +1,227 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
-  Play,
+  Loader2,
+  MoreHorizontal,
   Pause,
+  Play,
+  Repeat,
+  Repeat1,
   SkipBack,
   SkipForward,
   X,
-  Repeat,
-  Repeat1,
-  Loader2,
 } from "lucide-react";
-import { Button } from "@template/ui";
-import { useAudioStore, RECITERS } from "@/lib/stores/audio-store";
-import { ReciterPicker } from "./reciter-picker";
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@template/ui";
+import { getChapter, getReciter, parseVerseKey } from "@noor/core";
+import { SurahName } from "@/components/quran/ornaments";
+import { useI18n } from "@/lib/i18n";
+import {
+  seekTo,
+  useAudio,
+  useAudioProgress,
+  type RepeatMode,
+} from "@/lib/stores/audio";
+import { usePreferences } from "@/lib/stores/preferences";
 import { cn } from "@/lib/utils";
+import { ReciterPicker } from "./reciter-picker";
 
-function formatTime(seconds: number): string {
-  if (!seconds || !isFinite(seconds)) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
+const NEXT_REPEAT: Record<RepeatMode, RepeatMode> = {
+  off: "verse",
+  verse: "surah",
+  surah: "off",
+};
+
+function Progress() {
+  const progress = useAudioProgress();
+  return (
+    <div
+      role="slider"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(progress * 100)}
+      className="group absolute inset-x-5 top-0 h-3 -translate-y-1/2 cursor-pointer"
+      onClick={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const fraction = (e.clientX - rect.left) / rect.width;
+        seekTo(document.dir === "rtl" ? 1 - fraction : fraction);
+      }}
+    >
+      <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 overflow-hidden rounded-full bg-border">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-200 ease-linear"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
-export function AudioPlayer() {
-  const {
-    isPlaying,
-    isLoading,
-    isVisible,
-    currentVerseKey,
-    currentTime,
-    duration,
-    repeatMode,
-    playbackSpeed,
-    reciterId,
-    pause,
-    resume,
-    stop,
-    next,
-    previous,
-    seekTo,
-    setRepeatMode,
-    setSpeed,
-  } = useAudioStore();
+/** Mini player shown while a recitation is loaded. */
+export function AudioPlayer({ aboveTabBar }: { aboveTabBar: boolean }) {
+  const { t, locale } = useI18n();
+  const { verseKey, status, repeat, toggle, next, previous, stop, setRepeat } =
+    useAudio();
+  const reciterId = usePreferences((s) => s.reciterId);
+  const playbackRate = usePreferences((s) => s.playbackRate);
+  const setPrefs = usePreferences((s) => s.set);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const location = useLocation();
-  const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
-
-  if (!isVisible || !currentVerseKey) return null;
-
-  const hideNavPaths = ["/quran/", "/hifz/drill"];
-  const isNavHidden = hideNavPaths.some(
-    (p) => location.pathname.startsWith(p) && location.pathname !== "/quran",
+  if (!verseKey) return null;
+  const ref = parseVerseKey(verseKey);
+  const chapter = ref ? getChapter(ref.chapter) : undefined;
+  const reciter = getReciter(reciterId);
+  const RepeatIcon = repeat === "verse" ? Repeat1 : Repeat;
+  const repeatLabel = t(
+    repeat === "off"
+      ? "repeatOff"
+      : repeat === "verse"
+        ? "repeatVerse"
+        : "repeatSurah",
   );
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const reciterName =
-    RECITERS.find((r) => r.id === reciterId)?.name ?? "Unknown";
-
-  const cycleRepeat = () => {
-    const modes: ("off" | "verse" | "surah")[] = ["off", "verse", "surah"];
-    const idx = modes.indexOf(repeatMode);
-    setRepeatMode(modes[(idx + 1) % modes.length]);
-  };
-
-  const cycleSpeed = () => {
-    const speeds = [0.75, 1, 1.25, 1.5, 2];
-    const idx = speeds.indexOf(playbackSpeed);
-    setSpeed(speeds[(idx + 1) % speeds.length]);
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const pct = x / rect.width;
-    seekTo(pct * duration);
-  };
-
   return (
-    <>
-      <div
-        className={cn(
-          "fixed left-0 right-0 z-50 safe-area-bottom",
-          isNavHidden ? "bottom-0" : "bottom-[76px] lg:bottom-0",
-        )}
-      >
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-elevated overflow-hidden">
-            {/* Progress bar */}
-            <div
-              className="h-1 bg-border/30 cursor-pointer group"
-              onClick={handleSeek}
+    <div
+      className={cn(
+        "fixed inset-x-3 z-40 md:inset-x-auto md:end-6 md:start-[calc(88px+1.5rem)]",
+        aboveTabBar
+          ? "bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] md:bottom-6 xl:start-[calc(16rem+1.5rem)]"
+          : "bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-6",
+      )}
+    >
+      <div className="relative mx-auto flex max-w-2xl items-center gap-2 rounded-[26px] border border-border/70 bg-card/90 py-2 pe-2 ps-4 shadow-float backdrop-blur-xl">
+        <Progress />
+
+        <Link
+          to={ref ? `/quran/${ref.chapter}?verse=${ref.verse}` : "/quran"}
+          className="flex min-w-0 flex-1 items-center gap-3"
+        >
+          {chapter && (
+            <SurahName
+              chapter={chapter.id}
+              className="hidden text-[1.6rem] text-primary sm:inline-flex"
+            />
+          )}
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">
+              {chapter
+                ? locale === "ar"
+                  ? chapter.nameArabic
+                  : chapter.nameSimple
+                : ""}{" "}
+              · {verseKey}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {status === "error" ? t("audioFailed") : reciter.name[locale]}
+            </span>
+          </span>
+        </Link>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className={cn(
+            "hidden md:inline-flex",
+            repeat !== "off" && "text-primary",
+          )}
+          onClick={() => setRepeat(NEXT_REPEAT[repeat])}
+          aria-label={repeatLabel}
+          title={repeatLabel}
+        >
+          <RepeatIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={previous}
+          aria-label={t("previous")}
+          className="rtl:rotate-180"
+        >
+          <SkipBack />
+        </Button>
+        <Button
+          size="icon"
+          onClick={toggle}
+          aria-label={status === "playing" ? t("pause") : t("play")}
+          className="size-11"
+        >
+          {status === "loading" ? (
+            <Loader2 className="animate-spin" />
+          ) : status === "playing" ? (
+            <Pause className="fill-current" />
+          ) : (
+            <Play className="translate-x-px fill-current" />
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={next}
+          aria-label={t("next")}
+          className="rtl:rotate-180"
+        >
+          <SkipForward />
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("moreActions")}
             >
-              <div
-                className="h-full bg-primary rounded-full transition-[width] duration-200"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuItem onSelect={() => setPickerOpen(true)}>
+              {t("chooseReciter")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => setRepeat(NEXT_REPEAT[repeat])}
+              className="md:hidden"
+            >
+              <RepeatIcon /> {repeatLabel}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="px-3 text-xs text-muted-foreground">
+              {t("playbackSpeed")}
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={String(playbackRate)}
+              onValueChange={(value) =>
+                setPrefs({ playbackRate: Number(value) })
+              }
+            >
+              {SPEEDS.map((speed) => (
+                <DropdownMenuRadioItem key={speed} value={String(speed)}>
+                  {speed}×
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-            <div className="px-4 py-3">
-              {/* Top row */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-foreground tabular-nums shrink-0">
-                    {currentVerseKey}
-                  </span>
-                  <button
-                    onClick={() => setReciterPickerOpen(true)}
-                    className="text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors truncate"
-                  >
-                    {reciterName}
-                  </button>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground tabular-nums shrink-0 ml-2">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>/</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center justify-between">
-                {/* Left */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-8 w-8 rounded-xl",
-                      repeatMode !== "off"
-                        ? "text-primary"
-                        : "text-muted-foreground",
-                    )}
-                    onClick={cycleRepeat}
-                  >
-                    {repeatMode === "verse" ? (
-                      <Repeat1 className="h-3.5 w-3.5" />
-                    ) : (
-                      <Repeat className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-
-                  <button
-                    onClick={cycleSpeed}
-                    className={cn(
-                      "h-8 min-w-[32px] px-2 rounded-xl text-[10px] font-bold transition-colors",
-                      playbackSpeed !== 1
-                        ? "text-primary bg-primary/8"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {playbackSpeed}x
-                  </button>
-                </div>
-
-                {/* Center */}
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl text-foreground"
-                    onClick={previous}
-                  >
-                    <SkipBack className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-11 w-11 rounded-2xl"
-                    onClick={isPlaying ? pause : resume}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : isPlaying ? (
-                      <Pause className="h-5 w-5" />
-                    ) : (
-                      <Play className="h-5 w-5 ml-0.5" />
-                    )}
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl text-foreground"
-                    onClick={next}
-                  >
-                    <SkipForward className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Right */}
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-xl text-muted-foreground"
-                    onClick={stop}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={stop}
+          aria-label={t("stopAudio")}
+        >
+          <X />
+        </Button>
       </div>
-
-      <ReciterPicker
-        open={reciterPickerOpen}
-        onOpenChange={setReciterPickerOpen}
-      />
-    </>
+      <ReciterPicker open={pickerOpen} onOpenChange={setPickerOpen} />
+    </div>
   );
 }

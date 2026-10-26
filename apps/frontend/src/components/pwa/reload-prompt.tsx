@@ -1,44 +1,30 @@
 import { useEffect } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
-const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000; // 60 minutes
+const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000;
 
-/**
- * Handles PWA service worker updates.
- *
- * When a new version of the app is available, shows a toast prompting the
- * user to reload. Also periodically checks for updates every 60 minutes.
- */
+/** Registers the service worker and offers a reload when a new version is ready. */
 export function ReloadPrompt() {
+  const { t } = useI18n();
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegisteredSW(_swUrl, registration) {
-      if (registration) {
-        setInterval(() => {
-          registration.update();
-        }, UPDATE_CHECK_INTERVAL);
-      }
-    },
-    onRegisterError(error) {
-      console.error("SW registration error:", error);
+    onRegisteredSW(_url, registration) {
+      if (registration)
+        setInterval(() => registration.update(), UPDATE_CHECK_INTERVAL);
     },
   });
 
   useEffect(() => {
-    if (needRefresh) {
-      toast("Update available", {
-        description: "A new version of Noor is ready.",
-        duration: Infinity,
-        action: {
-          label: "Reload",
-          onClick: () => updateServiceWorker(true),
-        },
-      });
-    }
-  }, [needRefresh, updateServiceWorker]);
+    if (!needRefresh) return;
+    toast(t("updateReady"), {
+      duration: Infinity,
+      action: { label: t("reload"), onClick: () => updateServiceWorker(true) },
+    });
+  }, [needRefresh, updateServiceWorker, t]);
 
   return null;
 }

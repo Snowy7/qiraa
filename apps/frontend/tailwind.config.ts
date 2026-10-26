@@ -1,14 +1,19 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
 
 const config: Config = {
   darkMode: ["class"],
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{ts,tsx}",
+    "../../packages/ui/src/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
+      screens: {
+        // Matches the app shell breakpoints: rail from md, full sidebar from xl.
+        "3xl": "1800px",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -42,10 +47,10 @@ const config: Config = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
-          content: "hsl(var(--card-content))",
         },
       },
       borderRadius: {
+        "4xl": "2rem",
         "2xl": "calc(var(--radius) + 4px)",
         xl: "var(--radius)",
         lg: "calc(var(--radius) - 4px)",
@@ -53,13 +58,12 @@ const config: Config = {
         sm: "calc(var(--radius) - 8px)",
       },
       boxShadow: {
-        soft: "0 2px 16px rgba(0, 0, 0, 0.04)",
-        card: "0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)",
-        elevated: "0 4px 24px rgba(0, 0, 0, 0.06)",
+        float:
+          "0 10px 40px -12px hsl(26 40% 15% / 0.28), 0 2px 6px hsl(26 40% 15% / 0.06)",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 };
 
 export default config;

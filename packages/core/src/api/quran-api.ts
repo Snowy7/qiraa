@@ -22,15 +22,51 @@ export interface TranslationResource {
 export const DEFAULT_TRANSLATION_ID = 85; // M.A.S. Abdel Haleem
 export const DEFAULT_TAFSIR_ID = { en: 169, ar: 16 } as const; // Ibn Kathir (abridged), Al-Muyassar
 
-export async function fetchTranslationResources(signal?: AbortSignal): Promise<TranslationResource[]> {
-  type Raw = { id: number; name: string; author_name: string; language_name: string };
-  const { translations } = await getJson<{ translations: Raw[] }>(`${QURAN_API}/resources/translations`, signal);
+/** Well-known tafsir works offered in the reader (quran.com resource ids). */
+export const TAFSIRS = [
+  { id: 169, name: "Ibn Kathir (Abridged)", language: "en" },
+  { id: 168, name: "Ma’arif al-Qur’an", language: "en" },
+  { id: 817, name: "Tazkirul Quran", language: "en" },
+  { id: 16, name: "التفسير الميسر", language: "ar" },
+  { id: 91, name: "تفسير السعدي", language: "ar" },
+  { id: 14, name: "تفسير ابن كثير", language: "ar" },
+  { id: 15, name: "تفسير الطبري", language: "ar" },
+  { id: 90, name: "تفسير القرطبي", language: "ar" },
+  { id: 94, name: "تفسير البغوي", language: "ar" },
+  { id: 93, name: "التفسير الوسيط", language: "ar" },
+] as const;
+
+export async function fetchTranslationResources(
+  signal?: AbortSignal,
+): Promise<TranslationResource[]> {
+  type Raw = {
+    id: number;
+    name: string;
+    author_name: string;
+    language_name: string;
+  };
+  const { translations } = await getJson<{ translations: Raw[] }>(
+    `${QURAN_API}/resources/translations`,
+    signal,
+  );
   return translations
-    .map((t) => ({ id: t.id, name: t.name, authorName: t.author_name, languageName: t.language_name }))
-    .sort((a, b) => a.languageName.localeCompare(b.languageName) || a.name.localeCompare(b.name));
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      authorName: t.author_name,
+      languageName: t.language_name,
+    }))
+    .sort(
+      (a, b) =>
+        a.languageName.localeCompare(b.languageName) ||
+        a.name.localeCompare(b.name),
+    );
 }
 
-export function chapterTranslationUrl(translationId: number, chapter: number): string {
+export function chapterTranslationUrl(
+  translationId: number,
+  chapter: number,
+): string {
   return `${QURAN_API}/quran/translations/${translationId}?chapter_number=${chapter}`;
 }
 
@@ -61,9 +97,17 @@ export async function fetchVerseTafsir(
   signal?: AbortSignal,
 ): Promise<TafsirEntry> {
   const { tafsir } = await getJson<{
-    tafsir: { resource_name: string; text: string; verses: Record<string, unknown> };
+    tafsir: {
+      resource_name: string;
+      text: string;
+      verses: Record<string, unknown>;
+    };
   }>(`${QURAN_API}/tafsirs/${tafsirId}/by_ayah/${verseKey}`, signal);
-  return { resourceName: tafsir.resource_name, html: tafsir.text, verseKeys: Object.keys(tafsir.verses) };
+  return {
+    resourceName: tafsir.resource_name,
+    html: tafsir.text,
+    verseKeys: Object.keys(tafsir.verses),
+  };
 }
 
 export interface SearchResult {
@@ -92,7 +136,11 @@ export async function searchQuran(
   const { search } = await getJson<{
     search: {
       total_results: number;
-      results: { verse_key: string; text: string; translations?: { text: string }[] }[];
+      results: {
+        verse_key: string;
+        text: string;
+        translations?: { text: string }[];
+      }[];
     };
   }>(`${QURAN_API}/search?${params}`, signal);
   return {

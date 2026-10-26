@@ -1,4 +1,4 @@
-import { CHAPTERS } from "./chapters";
+import { CHAPTERS, JUZS } from "./chapters";
 
 /** A verse reference such as `2:255`. */
 export type VerseKey = `${number}:${number}`;
@@ -26,7 +26,9 @@ export function parseVerseKey(key: string): VerseRef | null {
 // Verses before each chapter, so verse keys compare in O(1).
 const VERSES_BEFORE: readonly number[] = CHAPTERS.reduce<number[]>(
   (acc, chapter, index) => {
-    acc.push(index === 0 ? 0 : acc[index - 1] + CHAPTERS[index - 1].versesCount);
+    acc.push(
+      index === 0 ? 0 : acc[index - 1] + CHAPTERS[index - 1].versesCount,
+    );
     return acc;
   },
   [],
@@ -37,4 +39,15 @@ export function verseOrdinal(key: string): number {
   const ref = parseVerseKey(key);
   if (!ref) throw new Error(`Invalid verse key: ${key}`);
   return VERSES_BEFORE[ref.chapter - 1] + ref.verse;
+}
+
+/** Juz (1–30) that contains the verse. */
+export function juzOfVerse(key: string): number {
+  const ordinal = verseOrdinal(key);
+  let juz = 1;
+  for (const entry of JUZS) {
+    if (verseOrdinal(entry.firstVerse) <= ordinal) juz = entry.juz;
+    else break;
+  }
+  return juz;
 }

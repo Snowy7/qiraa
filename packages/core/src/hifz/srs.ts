@@ -14,9 +14,18 @@ export interface ReviewState {
   repetitions: number;
 }
 
-export const INITIAL_REVIEW_STATE: ReviewState = { easeFactor: 2.5, interval: 0, repetitions: 0 };
+export const INITIAL_REVIEW_STATE: ReviewState = {
+  easeFactor: 2.5,
+  interval: 0,
+  repetitions: 0,
+};
 
-const QUALITY: Record<ReviewRating, 0 | 1 | 2 | 3> = { forgot: 0, shaky: 1, good: 2, solid: 3 };
+const QUALITY: Record<ReviewRating, 0 | 1 | 2 | 3> = {
+  forgot: 0,
+  shaky: 1,
+  good: 2,
+  solid: 3,
+};
 
 /** The confidence label stored after a review with this rating. */
 export const CONFIDENCE_AFTER: Record<ReviewRating, Confidence> = {
@@ -40,7 +49,11 @@ export function review(state: ReviewState, rating: ReviewRating): ReviewState {
   const { easeFactor, interval, repetitions } = state;
 
   if (quality === 0) {
-    return { repetitions: 0, interval: 1, easeFactor: Math.max(1.3, easeFactor - 0.2) };
+    return {
+      repetitions: 0,
+      interval: 1,
+      easeFactor: Math.max(1.3, easeFactor - 0.2),
+    };
   }
   if (quality === 1) {
     return {
@@ -54,9 +67,13 @@ export function review(state: ReviewState, rating: ReviewRating): ReviewState {
   const solid = quality === 3;
   const nextInterval =
     reps === 1
-      ? solid ? 2 : 1
+      ? solid
+        ? 2
+        : 1
       : reps === 2
-        ? solid ? 7 : 6
+        ? solid
+          ? 7
+          : 6
         : Math.round(interval * easeFactor * (solid ? 1.2 : 1));
   return {
     repetitions: reps,

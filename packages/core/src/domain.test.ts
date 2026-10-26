@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_REVIEW_STATE, review } from "./hifz/srs";
 import { nextPrayer, prayerTimesFor } from "./prayer/times";
-import { parseVerseKey, verseOrdinal } from "./quran/verse-key";
+import { juzOfVerse, parseVerseKey, verseOrdinal } from "./quran/verse-key";
 
 describe("verse keys", () => {
   it("orders verses across the whole Quran", () => {
@@ -24,7 +24,10 @@ describe("spaced repetition", () => {
     const third = review(second, "solid");
     expect([first.interval, second.interval]).toEqual([2, 7]);
     expect(third.interval).toBeGreaterThan(second.interval);
-    expect(review(third, "forgot")).toMatchObject({ interval: 1, repetitions: 0 });
+    expect(review(third, "forgot")).toMatchObject({
+      interval: 1,
+      repetitions: 0,
+    });
   });
 });
 
@@ -38,5 +41,14 @@ describe("prayer times", () => {
     const next = nextPrayer(makkah, afterIsha);
     expect(next.name).toBe("fajr");
     expect(next.time.getTime()).toBeGreaterThan(afterIsha.getTime());
+  });
+});
+
+describe("juzOfVerse", () => {
+  it("maps verses to their juz", () => {
+    expect(juzOfVerse("1:1")).toBe(1);
+    expect(juzOfVerse("2:141")).toBe(1);
+    expect(juzOfVerse("2:142")).toBe(2);
+    expect(juzOfVerse("114:6")).toBe(30);
   });
 });

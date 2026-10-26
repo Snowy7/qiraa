@@ -2,7 +2,10 @@ import { parseVerseKey, verseOrdinal } from "../quran/verse-key";
 import type { PageLines, ScriptIndex, WordText } from "./types";
 
 /** First page of the chunk file that holds `page`. */
-export function chunkStartFor(index: Pick<ScriptIndex, "pagesPerChunk">, page: number): number {
+export function chunkStartFor(
+  index: Pick<ScriptIndex, "pagesPerChunk">,
+  page: number,
+): number {
   return page - ((page - 1) % index.pagesPerChunk);
 }
 

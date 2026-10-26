@@ -41,7 +41,7 @@ export interface ReadingHistoryEntry {
   id: string;
   chapterId: number;
   verseNumber: number;
-  readingMode: "translation" | "mushaf" | "word-by-word" | "tafsir";
+  readingMode: "translation" | "mushaf" | "word-by-word" | "tafsir" | "verses";
   timestamp: number;
 }
 

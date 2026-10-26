@@ -45,7 +45,10 @@ export function searchChapters(query: string): readonly Chapter[] {
   return CHAPTERS.filter(
     (c) =>
       String(c.id) === q ||
-      c.nameSimple.toLowerCase().replace(/[^a-z0-9]/g, "").includes(normalized) ||
+      c.nameSimple
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .includes(normalized) ||
       c.nameArabic.includes(q) ||
       c.translatedName.en.toLowerCase().includes(q) ||
       c.translatedName.ar.includes(q),

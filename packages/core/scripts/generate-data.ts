@@ -75,19 +75,27 @@ const JOBS: Job[] = [
   {
     mushafId: 1,
     pageCount: 604,
-    outputs: [{ script: "qcf-v2", word: (w) => w.code_v2, end: (w) => w.code_v2 }],
+    outputs: [
+      { script: "qcf-v2", word: (w) => w.code_v2, end: (w) => w.code_v2 },
+    ],
   },
   {
     mushafId: 2,
     pageCount: 604,
-    outputs: [{ script: "qcf-v1", word: (w) => w.code_v1, end: (w) => w.code_v1 }],
+    outputs: [
+      { script: "qcf-v1", word: (w) => w.code_v1, end: (w) => w.code_v1 },
+    ],
   },
   {
     mushafId: 5,
     pageCount: 604,
     collectWordByWord: true,
     outputs: [
-      { script: "qpc-hafs", word: (w) => w.text_qpc_hafs, end: (w) => w.text_qpc_hafs },
+      {
+        script: "qpc-hafs",
+        word: (w) => w.text_qpc_hafs,
+        end: (w) => w.text_qpc_hafs,
+      },
       {
         script: "tajweed",
         word: (w) => parseTajweed(w.text_uthmani_tajweed),
@@ -98,7 +106,13 @@ const JOBS: Job[] = [
   {
     mushafId: 6,
     pageCount: 610,
-    outputs: [{ script: "indopak", word: (w) => w.text_indopak, end: (w) => w.text_indopak }],
+    outputs: [
+      {
+        script: "indopak",
+        word: (w) => w.text_indopak,
+        end: (w) => w.text_indopak,
+      },
+    ],
   },
 ];
 
@@ -116,11 +130,16 @@ const WORD_FIELDS = [
 
 /** Fetches JSON with retries; responses are cached on disk so reruns are offline. */
 async function getJson<T>(url: string, attempt = 1): Promise<T> {
-  const cacheFile = join(CACHE, `${createHash("sha1").update(url).digest("hex")}.json`);
+  const cacheFile = join(
+    CACHE,
+    `${createHash("sha1").update(url).digest("hex")}.json`,
+  );
   const cached = await readFile(cacheFile, "utf8").catch(() => null);
   if (cached) return JSON.parse(cached) as T;
   try {
-    const res = await fetch(url, { headers: { "User-Agent": "noor-data-generator" } });
+    const res = await fetch(url, {
+      headers: { "User-Agent": "noor-data-generator" },
+    });
     if (!res.ok) throw new Error(`${res.status} ${url}`);
     const body = await res.text();
     await mkdir(CACHE, { recursive: true });
@@ -134,7 +153,10 @@ async function getJson<T>(url: string, attempt = 1): Promise<T> {
 }
 
 /** Runs `task` for every item with bounded concurrency, preserving order. */
-async function mapPool<T, R>(items: T[], task: (item: T) => Promise<R>): Promise<R[]> {
+async function mapPool<T, R>(
+  items: T[],
+  task: (item: T) => Promise<R>,
+): Promise<R[]> {
   const results: R[] = new Array(items.length);
   let next = 0;
   await Promise.all(
@@ -166,7 +188,8 @@ async function patchMissingEndMarkers(pageVerses: ApiVerse[][]) {
   for (const verses of pageVerses) {
     for (const verse of verses) {
       if (verse.words.length > 0) lastOccurrence.set(verse.verse_key, verse);
-      if (verse.words.some((w) => w.char_type_name === "end")) hasEnd.add(verse.verse_key);
+      if (verse.words.some((w) => w.char_type_name === "end"))
+        hasEnd.add(verse.verse_key);
     }
   }
   for (const [verseKey, verse] of lastOccurrence) {
@@ -177,17 +200,26 @@ async function patchMissingEndMarkers(pageVerses: ApiVerse[][]) {
     const end = v4.words.find((w) => w.char_type_name === "end");
     if (!end) throw new Error(`No end marker for ${verseKey} in either API`);
     const last = verse.words.at(-1)!;
-    verse.words.push({ ...end, line_number: last.line_number, page_number: last.page_number });
+    verse.words.push({
+      ...end,
+      line_number: last.line_number,
+      page_number: last.page_number,
+    });
     console.log(`  patched end marker for ${verseKey}`);
   }
 }
 
-async function generateJob(job: Job, wordByWord: Map<string, [string, string][]>) {
+async function generateJob(
+  job: Job,
+  wordByWord: Map<string, [string, string][]>,
+) {
   const pages = Array.from({ length: job.pageCount }, (_, i) => i + 1);
   const pageVerses = await mapPool(pages, async (page) => {
     const url = `${API}/verses/by_page/${page}?mushaf=${job.mushafId}&words=true&per_page=all&filter_page_words=true&word_fields=${WORD_FIELDS}`;
     const { verses } = await getJson<{ verses: ApiVerse[] }>(url);
-    process.stdout.write(`\rmushaf ${job.mushafId}: page ${page}/${job.pageCount}   `);
+    process.stdout.write(
+      `\rmushaf ${job.mushafId}: page ${page}/${job.pageCount}   `,
+    );
     return verses;
   });
   process.stdout.write("\n");
@@ -235,19 +267,27 @@ async function generateJob(job: Job, wordByWord: Map<string, [string, string][]>
       chunk[page] = [...lines.entries()].sort(([a], [b]) => a - b);
       if (page % PAGES_PER_CHUNK === 0 || page === job.pageCount) {
         const start = page - ((page - 1) % PAGES_PER_CHUNK);
-        await writeJson(join(dir, `p${String(start).padStart(3, "0")}.json`), chunk);
+        await writeJson(
+          join(dir, `p${String(start).padStart(3, "0")}.json`),
+          chunk,
+        );
         chunk = {};
       }
     }
 
-    if (verseCount !== 6236) throw new Error(`${output.script}: expected 6236 verses, got ${verseCount}`);
+    if (verseCount !== 6236)
+      throw new Error(
+        `${output.script}: expected 6236 verses, got ${verseCount}`,
+      );
     await writeJson(join(dir, "index.json"), {
       pageCount: job.pageCount,
       pagesPerChunk: PAGES_PER_CHUNK,
       pageFirstVerse,
       chapterPages,
     });
-    console.log(`  ${output.script}: ${job.pageCount} pages, ${verseCount} verses`);
+    console.log(
+      `  ${output.script}: ${job.pageCount} pages, ${verseCount} verses`,
+    );
   }
 
   if (job.collectWordByWord) {
@@ -257,7 +297,10 @@ async function generateJob(job: Job, wordByWord: Map<string, [string, string][]>
         wordByWord.set(verse.verse_key, glosses);
         for (const word of verse.words) {
           if (word.char_type_name !== "word") continue;
-          glosses.push([word.translation?.text ?? "", word.transliteration?.text ?? ""]);
+          glosses.push([
+            word.translation?.text ?? "",
+            word.transliteration?.text ?? "",
+          ]);
         }
       }
     }
@@ -279,7 +322,9 @@ type ApiChapter = {
 async function generateChapters() {
   const [en, ar] = await Promise.all(
     ["en", "ar"].map((language) =>
-      getJson<{ chapters: ApiChapter[] }>(`${API}/chapters?language=${language}`),
+      getJson<{ chapters: ApiChapter[] }>(
+        `${API}/chapters?language=${language}`,
+      ),
     ),
   );
   const chapters = en.chapters.map((chapter, index) => ({
@@ -287,7 +332,10 @@ async function generateChapters() {
     nameSimple: chapter.name_simple,
     nameComplex: chapter.name_complex,
     nameArabic: chapter.name_arabic,
-    translatedName: { en: chapter.translated_name.name, ar: ar.chapters[index].translated_name.name },
+    translatedName: {
+      en: chapter.translated_name.name,
+      ar: ar.chapters[index].translated_name.name,
+    },
     revelationPlace: chapter.revelation_place,
     revelationOrder: chapter.revelation_order,
     versesCount: chapter.verses_count,
@@ -297,10 +345,13 @@ async function generateChapters() {
 }
 
 async function generateJuzs() {
-  const { juzs } = await getJson<{ juzs: { juz_number: number; verse_mapping: Record<string, string> }[] }>(
-    "https://api.quran.com/api/v4/juzs",
-  );
-  const byNumber = new Map<number, { juz: number; firstVerse: string; lastVerse: string }>();
+  const { juzs } = await getJson<{
+    juzs: { juz_number: number; verse_mapping: Record<string, string> }[];
+  }>("https://api.quran.com/api/v4/juzs");
+  const byNumber = new Map<
+    number,
+    { juz: number; firstVerse: string; lastVerse: string }
+  >();
   for (const { juz_number, verse_mapping } of juzs) {
     if (byNumber.has(juz_number)) continue;
     const chapters = Object.keys(verse_mapping).map(Number);
@@ -312,7 +363,10 @@ async function generateJuzs() {
       lastVerse: `${last}:${verse_mapping[last].split("-")[1]}`,
     });
   }
-  await writeJson(join(OUT, "juzs.json"), [...byNumber.values()].sort((a, b) => a.juz - b.juz));
+  await writeJson(
+    join(OUT, "juzs.json"),
+    [...byNumber.values()].sort((a, b) => a.juz - b.juz),
+  );
 }
 
 async function main() {
@@ -331,7 +385,10 @@ async function main() {
     byChapter.set(chapterOf(verseKey), chapter);
   }
   for (const [chapter, verses] of byChapter) {
-    await writeJson(join(wbwDir, `${String(chapter).padStart(3, "0")}.json`), verses);
+    await writeJson(
+      join(wbwDir, `${String(chapter).padStart(3, "0")}.json`),
+      verses,
+    );
   }
   console.log(`wbw: ${wordByWord.size} verses`);
 }

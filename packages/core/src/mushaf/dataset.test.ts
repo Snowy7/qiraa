@@ -10,11 +10,16 @@ const DATA = join(import.meta.dirname, "../../data/scripts");
 
 function loadScript(id: string) {
   const dir = join(DATA, id);
-  const index = JSON.parse(readFileSync(join(dir, "index.json"), "utf8")) as ScriptIndex;
+  const index = JSON.parse(
+    readFileSync(join(dir, "index.json"), "utf8"),
+  ) as ScriptIndex;
   const pages = new Map<number, PageLines>();
   for (const file of readdirSync(dir).filter((f) => f.startsWith("p"))) {
-    const chunk = JSON.parse(readFileSync(join(dir, file), "utf8")) as PageChunk;
-    for (const [page, lines] of Object.entries(chunk)) pages.set(Number(page), lines);
+    const chunk = JSON.parse(
+      readFileSync(join(dir, file), "utf8"),
+    ) as PageChunk;
+    for (const [page, lines] of Object.entries(chunk))
+      pages.set(Number(page), lines);
   }
   return { index, pages };
 }
@@ -29,7 +34,10 @@ describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
   it("reassembles every chapter with complete, ordered verses", () => {
     for (const chapter of CHAPTERS) {
       const [first, last] = index.chapterPages[chapter.id - 1];
-      const range = Array.from({ length: last - first + 1 }, (_, i) => first + i);
+      const range = Array.from(
+        { length: last - first + 1 },
+        (_, i) => first + i,
+      );
       const verses = assembleChapterVerses(
         range.map((page) => ({ page, lines: pages.get(page)! })),
         chapter.id,

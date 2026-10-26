@@ -1,19 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
 
-    <!-- Primary Meta Tags -->
-    <title>Noor - Your Quran Companion | Read, Listen, Memorize</title>
-    <meta name="title" content="Noor - Your Quran Companion | Read, Listen, Memorize" />
-    <meta name="description" content="A beautiful Quran app for reading, listening, and memorizing. Features offline support, prayer times, Qibla compass, and progress tracking. Available as a PWA." />
-    <meta name="keywords" content="Quran, Islamic, Muslim, Noor, Prayer Times, Qibla, Memorization, Hifz, Arabic, Recitation, Holy Quran" />
-    <meta name="author" content="Noor" />
-    <meta name="robots" content="index, follow" />
+    <title>Noor — Read, listen and memorise the Quran</title>
+    <meta
+      name="description"
+      content="A calm Quran companion: accurate mushaf fonts, translations, recitations, memorisation and prayer times. Works offline."
+    />
+    <meta
+      name="keywords"
+      content="Quran, Mushaf, Tajweed, Hifz, Prayer Times, Islam, Arabic, Recitation"
+    />
 
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#D97B2A" />
+    <meta
+      name="theme-color"
+      content="#faf6ef"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0d0c0b"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -21,39 +34,51 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="Noor" />
 
-    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="72x72" href="/icons/icon-72x72.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96x96.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://noorquran.app/" />
-    <meta property="og:title" content="Noor - Your Quran Companion | Read, Listen, Memorize" />
-    <meta property="og:description" content="A beautiful Quran app for reading, listening, and memorizing. Features offline support, prayer times, Qibla compass, and progress tracking." />
+    <meta
+      property="og:title"
+      content="Noor — Read, listen and memorise the Quran"
+    />
+    <meta
+      property="og:description"
+      content="Accurate mushaf fonts, translations, recitations, memorisation and prayer times. Works offline."
+    />
     <meta property="og:image" content="https://noorquran.app/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Noor Quran App - Read, Listen, Memorize the Holy Quran" />
     <meta property="og:site_name" content="Noor" />
-    <meta property="og:locale" content="en_US" />
-
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://noorquran.app/" />
-    <meta name="twitter:title" content="Noor - Your Quran Companion | Read, Listen, Memorize" />
-    <meta name="twitter:description" content="A beautiful Quran app for reading, listening, and memorizing. Features offline support, prayer times, Qibla compass, and progress tracking." />
-    <meta name="twitter:image" content="https://noorquran.app/og-image.png" />
 
-    <!-- Preconnect hints -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="dns-prefetch" href="https://cdn.islamic.network" />
+    <link
+      rel="preload"
+      href="/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
 
-    <!-- Fonts - deferred loading -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Apply theme and text direction before first paint (no flash). -->
+    <script>
+      (function () {
+        try {
+          var prefs =
+            JSON.parse(localStorage.getItem("noor-preferences") || "{}")
+              .state || {};
+          var theme = prefs.theme || localStorage.getItem("theme") || "system";
+          var dark =
+            theme === "dark" ||
+            (theme === "system" &&
+              matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+          var lang = prefs.language === "ar" ? "ar" : "en";
+          document.documentElement.lang = lang;
+          document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

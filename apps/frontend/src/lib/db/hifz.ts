@@ -1,191 +1,130 @@
-import { db } from './index'
-import type { HifzProgress } from './types'
 import {
-  calculateSM2,
-  confidenceToQuality,
-  nextReviewDate,
-} from '../spaced-repetition'
+  CONFIDENCE_AFTER,
+  INITIAL_REVIEW_STATE,
+  TOTAL_VERSES,
+  nextReviewAt,
+  parseVerseKey,
+  review,
+  type Confidence,
+  type ReviewRating,
+} from "@noor/core";
+import { db } from "./index";
+import type { HifzProgress } from "./types";
 
-export async function markVerse(data: {
-  verseKey: string
-  chapterId: number
-  verseNumber: number
-  confidence: 'new' | 'learning' | 'shaky' | 'good' | 'solid'
-}): Promise<string> {
-  const existing = await db.hifzProgress.where('verseKey').equals(data.verseKey).first()
-  if (existing) {
-    await updateAfterReview(existing.id, data.confidence)
-    return existing.id
-  }
-
-  const now = Date.now()
-  const quality = confidenceToQuality(data.confidence)
-  const sm2 = calculateSM2(quality, 2.5, 0, 0)
-
-  const id = crypto.randomUUID()
-  await db.hifzProgress.add({
-    id,
-    verseKey: data.verseKey,
-    chapterId: data.chapterId,
-    verseNumber: data.verseNumber,
-    confidence: data.confidence,
-    lastReviewedAt: now,
-    nextReviewAt: nextReviewDate(sm2.interval),
-    reviewCount: 1,
-    easeFactor: sm2.easeFactor,
-    interval: sm2.interval,
-    streak: quality >= 2 ? 1 : 0,
-    createdAt: now,
-    updatedAt: now,
-  })
-  return id
-}
-
-export async function getVerseProgress(
-  verseKey: string
-): Promise<HifzProgress | undefined> {
-  return db.hifzProgress.where('verseKey').equals(verseKey).first()
-}
-
-export async function getDueReviews(limit?: number): Promise<HifzProgress[]> {
-  const now = Date.now()
-  let query = db.hifzProgress
-    .where('nextReviewAt')
-    .belowOrEqual(now)
-    .sortBy('nextReviewAt')
-
-  if (limit !== undefined) {
-    query = query.then((items) => items.slice(0, limit))
-  }
-  return query
-}
-
-export async function updateAfterReview(
-  id: string,
-  confidence: 'new' | 'learning' | 'shaky' | 'good' | 'solid'
+/** Records a review of a verse (creating its entry on first review). */
+export async function recordReview(
+  verseKey: string,
+  rating: ReviewRating,
 ): Promise<void> {
-  const entry = await db.hifzProgress.get(id)
-  if (!entry) return
-
-  const quality = confidenceToQuality(confidence)
-  const sm2 = calculateSM2(quality, entry.easeFactor, entry.interval, entry.streak)
-  const now = Date.now()
-
-  await db.hifzProgress.update(id, {
-    confidence,
+  const ref = parseVerseKey(verseKey);
+  if (!ref) throw new Error(`Invalid verse key: ${verseKey}`);
+  const now = Date.now();
+  const existing = await db.hifzProgress
+    .where("verseKey")
+    .equals(verseKey)
+    .first();
+  const state = existing
+    ? {
+        easeFactor: existing.easeFactor,
+        interval: existing.interval,
+        repetitions: existing.streak,
+      }
+    : INITIAL_REVIEW_STATE;
+  const next = review(state, rating);
+  const fields = {
+    confidence: CONFIDENCE_AFTER[rating],
     lastReviewedAt: now,
-    nextReviewAt: nextReviewDate(sm2.interval),
-    reviewCount: entry.reviewCount + 1,
-    easeFactor: sm2.easeFactor,
-    interval: sm2.interval,
-    streak: quality >= 2 ? entry.streak + 1 : 0,
+    nextReviewAt: nextReviewAt(now, next.interval),
+    easeFactor: next.easeFactor,
+    interval: next.interval,
+    streak: next.repetitions,
     updatedAt: now,
-  })
-}
+  };
 
-export async function getChapterProgress(chapterId: number): Promise<{
-  total: number
-  new: number
-  learning: number
-  shaky: number
-  good: number
-  solid: number
-}> {
-  const verses = await db.hifzProgress
-    .where('chapterId')
-    .equals(chapterId)
-    .toArray()
-
-  const counts = { total: verses.length, new: 0, learning: 0, shaky: 0, good: 0, solid: 0 }
-  for (const v of verses) {
-    counts[v.confidence]++
-  }
-  return counts
-}
-
-export async function getTotalProgress(): Promise<{
-  total: number
-  memorized: number
-  learning: number
-  new: number
-}> {
-  const all = await db.hifzProgress.toArray()
-  let memorized = 0
-  let learning = 0
-  let newCount = 0
-
-  for (const v of all) {
-    if (v.confidence === 'good' || v.confidence === 'solid') {
-      memorized++
-    } else if (v.confidence === 'learning' || v.confidence === 'shaky') {
-      learning++
-    } else {
-      newCount++
-    }
-  }
-
-  return {
-    total: 6236,
-    memorized,
-    learning,
-    new: newCount,
+  if (existing) {
+    await db.hifzProgress.update(existing.id, {
+      ...fields,
+      reviewCount: existing.reviewCount + 1,
+    });
+  } else {
+    await db.hifzProgress.add({
+      id: crypto.randomUUID(),
+      verseKey,
+      chapterId: ref.chapter,
+      verseNumber: ref.verse,
+      reviewCount: 1,
+      createdAt: now,
+      ...fields,
+    });
   }
 }
 
-export async function getDailyReviewCount(date?: Date): Promise<number> {
-  const d = date ?? new Date()
-  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-  const endOfDay = startOfDay + 24 * 60 * 60 * 1000
-
-  const reviews = await db.hifzProgress
-    .filter((entry) => {
-      return (
-        entry.lastReviewedAt !== undefined &&
-        entry.lastReviewedAt >= startOfDay &&
-        entry.lastReviewedAt < endOfDay
-      )
-    })
-    .count()
-
-  return reviews
+export function getDueReviews(limit = 20): Promise<HifzProgress[]> {
+  return db.hifzProgress
+    .where("nextReviewAt")
+    .belowOrEqual(Date.now())
+    .limit(limit)
+    .sortBy("nextReviewAt");
 }
 
-export async function getStreak(): Promise<number> {
-  const all = await db.hifzProgress
-    .filter((e) => e.lastReviewedAt !== undefined)
-    .toArray()
+export function getVerseConfidence(
+  verseKey: string,
+): Promise<Confidence | undefined> {
+  return db.hifzProgress
+    .where("verseKey")
+    .equals(verseKey)
+    .first()
+    .then((entry) => entry?.confidence);
+}
 
-  if (all.length === 0) return 0
+export interface HifzSummary {
+  total: number;
+  memorized: number;
+  learning: number;
+  due: number;
+  reviewedToday: number;
+  /** Consecutive days with at least one review, ending today or yesterday. */
+  streak: number;
+}
 
-  // Collect unique days that had reviews
-  const reviewDays = new Set<string>()
+const dayKey = (time: number) => {
+  const d = new Date(time);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+};
+
+/** Everything the dashboards show, computed in a single pass. */
+export async function getHifzSummary(): Promise<HifzSummary> {
+  const all = await db.hifzProgress.toArray();
+  const now = Date.now();
+  const today = dayKey(now);
+  const reviewDays = new Set<string>();
+  const summary: HifzSummary = {
+    total: TOTAL_VERSES,
+    memorized: 0,
+    learning: 0,
+    due: 0,
+    reviewedToday: 0,
+    streak: 0,
+  };
+
   for (const entry of all) {
-    if (entry.lastReviewedAt) {
-      const d = new Date(entry.lastReviewedAt)
-      reviewDays.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)
+    if (entry.confidence === "good" || entry.confidence === "solid")
+      summary.memorized++;
+    else summary.learning++;
+    if (entry.nextReviewAt !== undefined && entry.nextReviewAt <= now)
+      summary.due++;
+    if (entry.lastReviewedAt !== undefined) {
+      const key = dayKey(entry.lastReviewedAt);
+      reviewDays.add(key);
+      if (key === today) summary.reviewedToday++;
     }
   }
 
-  // Count backwards from today
-  let streak = 0
-  const now = new Date()
-  let current = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-  // Check if today has reviews; if not, start from yesterday
-  const todayKey = `${current.getFullYear()}-${current.getMonth()}-${current.getDate()}`
-  if (!reviewDays.has(todayKey)) {
-    current = new Date(current.getTime() - 24 * 60 * 60 * 1000)
+  const cursor = new Date();
+  if (!reviewDays.has(today)) cursor.setDate(cursor.getDate() - 1);
+  while (reviewDays.has(dayKey(cursor.getTime()))) {
+    summary.streak++;
+    cursor.setDate(cursor.getDate() - 1);
   }
-
-  while (true) {
-    const key = `${current.getFullYear()}-${current.getMonth()}-${current.getDate()}`
-    if (reviewDays.has(key)) {
-      streak++
-      current = new Date(current.getTime() - 24 * 60 * 60 * 1000)
-    } else {
-      break
-    }
-  }
-
-  return streak
+  return summary;
 }
