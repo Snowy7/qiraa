@@ -75,7 +75,7 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
     verses?.length ?? 0,
     (targetVerse ?? 0) + 6,
   );
-  const visibleVerse = useVisibleVerse(chapter.id, !!verses);
+  const visibleVerse = useVisibleVerse(chapter.id, !!verses, rendered);
   useFollowRecitation(chapter.id, !!verses);
   useScrollToVerse(targetVerse, !!verses);
 
@@ -220,8 +220,9 @@ function ChapterReader({ chapter }: { chapter: Chapter }) {
 /**
  * Tracks the top-most visible ayah and saves it as the reading position
  * (debounced). Returns a ref so callers can read it without re-rendering.
+ * `rendered` re-observes once progressive rendering adds the rest of the surah.
  */
-function useVisibleVerse(chapterId: number, ready: boolean) {
+function useVisibleVerse(chapterId: number, ready: boolean, rendered: number) {
   const visible = useRef<number | null>(null);
 
   useEffect(() => {
@@ -252,7 +253,7 @@ function useVisibleVerse(chapterId: number, ready: boolean) {
       clearTimeout(timer);
       observer.disconnect();
     };
-  }, [chapterId, ready]);
+  }, [chapterId, ready, rendered]);
 
   return visible;
 }

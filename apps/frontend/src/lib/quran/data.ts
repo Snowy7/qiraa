@@ -134,11 +134,12 @@ export function useWordByWord(chapter: number, enabled: boolean) {
   });
 }
 
-/** Imports every chunk of a script so the service worker caches it. */
+/** Imports every file of a script so the service worker caches it. */
 export async function prefetchScriptData(script: QuranScriptId) {
-  const files = Object.entries(chunkFiles).filter(([path]) =>
-    path.includes(`/scripts/${script}/`),
-  );
+  const files = [
+    ...Object.entries(indexFiles),
+    ...Object.entries(chunkFiles),
+  ].filter(([path]) => path.includes(`/scripts/${script}/`));
   await Promise.all(files.map(([, load]) => load()));
 }
 

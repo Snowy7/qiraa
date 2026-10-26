@@ -74,10 +74,13 @@ let loaded: {
 } | null = null;
 /** Index of the ayah being recited within `loaded`. */
 let currentIndex = 0;
+/** Bumped by every play() and stop(), so a slow load can't override a newer request. */
+let request = 0;
 
 const seconds = (ms: number) => ms / 1000;
 
-async function load(chapter: number) {
+/** Loads a surah into the element; null if a newer request took over meanwhile. */
+async function load(chapter: number, id: number) {
   const { reciterId } = usePreferences.getState();
   if (loaded?.reciterId === reciterId && loaded.chapter === chapter) {
     return loaded.recitation;
@@ -85,6 +88,7 @@ async function load(chapter: number) {
   const recitation = await queryClient.ensureQueryData(
     recitationQuery(reciterId, chapter),
   );
+  if (id !== request) return null;
   loaded = { reciterId, chapter, recitation };
   audio!.src = recitation.url;
   return recitation;
@@ -100,6 +104,7 @@ export const useAudio = create<AudioState>((set, get) => ({
   play: async (verseKey, options) => {
     const ref = parseVerseKey(verseKey);
     if (!audio || !ref) return;
+    const id = ++request;
     set({
       verseKey,
       status: "loading",
@@ -107,7 +112,8 @@ export const useAudio = create<AudioState>((set, get) => ({
       finishedAyah: false,
     });
     try {
-      const recitation = await load(ref.chapter);
+      const recitation = await load(ref.chapter, id);
+      if (!recitation) return;
       currentIndex = Math.max(
         0,
         recitation.verses.findIndex((v) => v.verseKey === verseKey),
@@ -131,10 +137,10 @@ export const useAudio = create<AudioState>((set, get) => ({
   },
 
   toggle: () => {
-    const { verseKey, finishedAyah, play } = get();
+    const { verseKey, finishedAyah, scope, play } = get();
     if (!audio || !verseKey) return;
-    // Replaying a finished single ayah starts it again.
-    if (finishedAyah) return void play(verseKey, { scope: "ayah" });
+    // A finished single ayah starts again; so does an ayah whose reciter changed.
+    if (finishedAyah || !loaded) return void play(verseKey, { scope });
     if (audio.paused) audio.play().catch(() => set({ status: "error" }));
     else audio.pause();
   },
@@ -163,6 +169,7 @@ export const useAudio = create<AudioState>((set, get) => ({
   },
 
   stop: () => {
+    request++;
     audio?.pause();
     audio?.removeAttribute("src");
     loaded = null;
