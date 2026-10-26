@@ -294,10 +294,7 @@ function DataSection() {
           </span>
         </button>
         <button
-          onClick={async () => {
-            await clearDownloads();
-            toast.success(t("offlineCleared"));
-          }}
+          onClick={clearDownloads}
           className="flex w-full items-center gap-4 py-3 text-start"
         >
           <Trash2 className="size-5 text-destructive" />

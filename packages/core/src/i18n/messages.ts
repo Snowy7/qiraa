@@ -286,11 +286,10 @@ export const MESSAGES = {
     en: "Removes downloaded fonts, translations and audio. Your saved ayahs stay.",
     ar: "يحذف الخطوط والترجمات والتلاوات المنزّلة، وتبقى محفوظاتك.",
   },
-  offlineCleared: { en: "Downloads removed", ar: "تم حذف التنزيلات" },
   about: { en: "About", ar: "حول" },
   aboutText: {
-    en: "Quran text and layouts from the King Fahd Complex via Quran.com. Recitations from EveryAyah.",
-    ar: "نص المصحف وتخطيطاته من مجمع الملك فهد عبر Quran.com، والتلاوات من EveryAyah.",
+    en: "Quran text, layouts and recitations from Quran.com; Quran fonts from the King Fahd Complex.",
+    ar: "نص المصحف وتخطيطاته والتلاوات من Quran.com، وخطوط المصحف من مجمع الملك فهد.",
   },
   version: { en: "Version {version}", ar: "الإصدار {version}" },
 

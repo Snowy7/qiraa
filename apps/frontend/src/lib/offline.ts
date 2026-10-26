@@ -160,9 +160,15 @@ export async function downloadChapterAudio(
   );
 }
 
+/**
+ * Deletes everything downloaded for offline use, then reloads: data and
+ * timings already loaded this session would otherwise be reused from memory
+ * by a later download instead of being fetched (and cached) again.
+ */
 export async function clearDownloads() {
   await Promise.all(OFFLINE_CACHES.map((name) => caches.delete(name)));
   useDownloads.getState().reset();
+  location.reload();
 }
 
 export async function storageUsage(): Promise<number | null> {

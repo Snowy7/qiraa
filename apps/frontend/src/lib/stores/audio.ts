@@ -125,7 +125,8 @@ export const useAudio = create<AudioState>((set, get) => ({
       await audio.play();
       updateMediaSession(verseKey);
     } catch (error) {
-      if ((error as Error).name !== "AbortError") set({ status: "error" });
+      if (id === request && (error as Error).name !== "AbortError")
+        set({ status: "error" });
     }
   },
 
@@ -241,10 +242,12 @@ if (audio) {
     if (prefs.playbackRate !== previous.playbackRate) {
       audio.playbackRate = prefs.playbackRate;
     }
-    const { verseKey, status, play } = useAudio.getState();
+    const { verseKey, status, scope, play } = useAudio.getState();
     if (prefs.reciterId !== previous.reciterId && verseKey) {
       loaded = null;
-      if (status === "playing") void play(verseKey);
+      // Restarting also supersedes a load still fetching the old reciter.
+      if (status === "playing" || status === "loading")
+        void play(verseKey, { scope });
     }
   });
 }
