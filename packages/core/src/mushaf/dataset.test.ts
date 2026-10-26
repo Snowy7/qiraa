@@ -1,0 +1,57 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { CHAPTERS } from "../quran/chapters";
+import { QURAN_SCRIPT_IDS } from "./scripts";
+import { assembleChapterVerses, pageOfVerse } from "./verses";
+import type { PageChunk, PageLines, ScriptIndex } from "./types";
+
+const DATA = join(import.meta.dirname, "../../data/scripts");
+
+function loadScript(id: string) {
+  const dir = join(DATA, id);
+  const index = JSON.parse(readFileSync(join(dir, "index.json"), "utf8")) as ScriptIndex;
+  const pages = new Map<number, PageLines>();
+  for (const file of readdirSync(dir).filter((f) => f.startsWith("p"))) {
+    const chunk = JSON.parse(readFileSync(join(dir, file), "utf8")) as PageChunk;
+    for (const [page, lines] of Object.entries(chunk)) pages.set(Number(page), lines);
+  }
+  return { index, pages };
+}
+
+describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
+  const { index, pages } = loadScript(id);
+
+  it("has every page of the layout", () => {
+    expect(pages.size).toBe(index.pageCount);
+  });
+
+  it("reassembles every chapter with complete, ordered verses", () => {
+    for (const chapter of CHAPTERS) {
+      const [first, last] = index.chapterPages[chapter.id - 1];
+      const range = Array.from({ length: last - first + 1 }, (_, i) => first + i);
+      const verses = assembleChapterVerses(
+        range.map((page) => ({ page, lines: pages.get(page)! })),
+        chapter.id,
+      );
+      expect(verses.map((v) => v.verse)).toEqual(
+        Array.from({ length: chapter.versesCount }, (_, i) => i + 1),
+      );
+      for (const verse of verses) {
+        expect(verse.words.length, verse.key).toBeGreaterThan(0);
+        expect(verse.end, verse.key).not.toBeNull();
+      }
+    }
+  });
+});
+
+describe("pageOfVerse", () => {
+  const { index } = loadScript("qcf-v2");
+
+  it("finds the page a verse starts on", () => {
+    expect(pageOfVerse(index, "1:1")).toBe(1);
+    expect(pageOfVerse(index, "2:142")).toBe(22);
+    expect(pageOfVerse(index, "2:255")).toBe(42);
+    expect(pageOfVerse(index, "114:6")).toBe(604);
+  });
+});

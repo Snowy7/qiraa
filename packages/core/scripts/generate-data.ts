@@ -300,15 +300,16 @@ async function generateJuzs() {
   const { juzs } = await getJson<{ juzs: { juz_number: number; verse_mapping: Record<string, string> }[] }>(
     "https://api.quran.com/api/v4/juzs",
   );
-  const byNumber = new Map<number, { juz: number; firstVerse: string; verseMapping: Record<string, string> }>();
+  const byNumber = new Map<number, { juz: number; firstVerse: string; lastVerse: string }>();
   for (const { juz_number, verse_mapping } of juzs) {
     if (byNumber.has(juz_number)) continue;
-    const firstChapter = Math.min(...Object.keys(verse_mapping).map(Number));
-    const firstVerse = verse_mapping[firstChapter].split("-")[0];
+    const chapters = Object.keys(verse_mapping).map(Number);
+    const first = Math.min(...chapters);
+    const last = Math.max(...chapters);
     byNumber.set(juz_number, {
       juz: juz_number,
-      firstVerse: `${firstChapter}:${firstVerse}`,
-      verseMapping: verse_mapping,
+      firstVerse: `${first}:${verse_mapping[first].split("-")[0]}`,
+      lastVerse: `${last}:${verse_mapping[last].split("-")[1]}`,
     });
   }
   await writeJson(join(OUT, "juzs.json"), [...byNumber.values()].sort((a, b) => a.juz - b.juz));

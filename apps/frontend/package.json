@@ -14,6 +14,7 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
     "@fontsource/scheherazade-new": "^5.2.8",
+    "@noor/core": "workspace:^",
     "@tanstack/react-query": "^5.62.0",
     "@template/ui": "workspace:*",
     "adhan": "^4.4.3",
