@@ -304,10 +304,22 @@ export function useAudioTime(): { current: number; duration: number } {
   return { current, duration };
 }
 
+/**
+ * Moves playback to a point in the surah (the progress slider). The ayah
+ * under the new position becomes the current one and a single-ayah play
+ * turns continuous; otherwise the end-of-ayah check (stop / repeat) would
+ * pull playback straight back to the ayah that was playing.
+ */
 export function seekTo(fraction: number) {
-  if (audio && audio.duration > 0) {
-    audio.currentTime = fraction * audio.duration;
-  }
+  if (!audio || !loaded || !(audio.duration > 0)) return;
+  audio.currentTime = fraction * audio.duration;
+  const { verses } = loaded.recitation;
+  currentIndex = timingIndexAt(verses, audio.currentTime * 1000);
+  useAudio.setState({
+    verseKey: verses[currentIndex].verseKey,
+    scope: "continuous",
+    finishedAyah: false,
+  });
 }
 
 /** True only for the ayah currently being recited (cheap per-verse selector). */
