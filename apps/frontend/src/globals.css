@@ -19,10 +19,7 @@
 
 @font-face {
   font-family: "surah_names";
-  src:
-    url("/fonts/quran/surah-names/v1/sura_names.woff2") format("woff2"),
-    url("/fonts/quran/surah-names/v1/sura_names.woff") format("woff"),
-    url("/fonts/quran/surah-names/v1/sura_names.ttf") format("truetype");
+  src: url("/fonts/quran/surah-names/v1/sura_names.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

@@ -16,7 +16,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@template/ui": ["../../packages/ui/src/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts"],

@@ -117,6 +117,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Consume the UI package from source: no separate build step needed.
+      "@template/ui": path.resolve(__dirname, "../../packages/ui/src/index.ts"),
     },
   },
   server: {
