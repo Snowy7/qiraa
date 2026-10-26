@@ -2,6 +2,7 @@ import {
   CalculationMethod,
   Coordinates,
   PrayerTimes,
+  Qibla,
   type CalculationParameters,
 } from "adhan";
 
@@ -86,4 +87,9 @@ export function formatHijriDate(date: Date, locale: "en" | "ar"): string {
   } catch {
     return "";
   }
+}
+
+/** Direction of the Kaaba from a place, in degrees clockwise from true north. */
+export function qiblaDirection({ lat, lng }: Coords): number {
+  return Qibla(new Coordinates(lat, lng));
 }

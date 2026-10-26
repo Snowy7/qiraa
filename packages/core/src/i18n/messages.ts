@@ -332,6 +332,65 @@ export const MESSAGES = {
     ar: "اضغط مشاركة ثم «إضافة إلى الشاشة الرئيسية».",
   },
   notNow: { en: "Not now", ar: "ليس الآن" },
+
+  // Mobile app
+  done: { en: "Done", ar: "تم" },
+  mushafLayout: { en: "Mushaf layout", ar: "عرض المصحف" },
+  scrollLayout: { en: "Scroll", ar: "تمرير" },
+  pagesLayout: { en: "Pages", ar: "صفحات" },
+  keepScreenOn: { en: "Keep screen on", ar: "إبقاء الشاشة مضاءة" },
+  keepScreenOnHint: {
+    en: "While a surah or the mushaf is open",
+    ar: "أثناء فتح سورة أو المصحف",
+  },
+  changeLanguage: { en: "Change language", ar: "تغيير اللغة" },
+  languageHint: {
+    en: "Qiraa uses the language chosen for it in your device settings.",
+    ar: "يستخدم تطبيق قراءة اللغة المختارة له في إعدادات جهازك.",
+  },
+  mushafFontsHint: {
+    en: "Page fonts, about {size}. Pages you open are kept automatically.",
+    ar: "خطوط الصفحات، نحو {size}. تُحفظ الصفحات التي تفتحها تلقائيًا.",
+  },
+  pagesDownloaded: {
+    en: "{n} of {total} pages downloaded",
+    ar: "تم تنزيل {n} من {total} صفحة",
+  },
+  surahsDownloaded: {
+    en: "{n} of {total} surahs · {size}",
+    ar: "{n} من {total} سورة · {size}",
+  },
+  deleteReciterDownloads: {
+    en: "Delete recitations by {name}?",
+    ar: "حذف تلاوات {name}؟",
+  },
+  searchTranslations: { en: "Search translations", ar: "ابحث في الترجمات" },
+  openSettings: { en: "Open Settings", ar: "فتح الإعدادات" },
+  locationDeniedDevice: {
+    en: "Location access is off for Qiraa. Allow it in Settings to see prayer times.",
+    ar: "الوصول إلى الموقع متوقف لتطبيق قراءة. اسمح به من الإعدادات لعرض أوقات الصلاة.",
+  },
+  prayerAlerts: { en: "Prayer alerts", ar: "تنبيهات الصلاة" },
+  prayerAlertsHint: {
+    en: "Tap the bell beside a prayer to be notified when its time begins.",
+    ar: "اضغط على الجرس بجانب الصلاة ليصلك تنبيه عند دخول وقتها.",
+  },
+  notificationsDenied: {
+    en: "Notifications are off for Qiraa. Turn them on in Settings.",
+    ar: "الإشعارات متوقفة لتطبيق قراءة. فعّلها من الإعدادات.",
+  },
+  prayerTimeNow: { en: "It is time for {prayer}", ar: "حان الآن وقت صلاة {prayer}" },
+  qibla: { en: "Qibla", ar: "القبلة" },
+  qiblaHint: {
+    en: "Hold your phone flat and turn until the arrow points straight up.",
+    ar: "أمسك هاتفك بشكل مسطّح ودُر حتى يشير السهم إلى الأعلى.",
+  },
+  qiblaAligned: { en: "You are facing the Qibla", ar: "أنت تتجه نحو القبلة" },
+  qiblaBearing: { en: "{degrees}° from north", ar: "{degrees}° من الشمال" },
+  compassUnavailable: {
+    en: "The compass isn't available on this device.",
+    ar: "البوصلة غير متاحة على هذا الجهاز.",
+  },
 } as const satisfies Record<string, { en: string; ar: string }>;
 
 export type MessageKey = keyof typeof MESSAGES;
@@ -354,4 +413,9 @@ export function formatMessage(
 
 export function formatNumber(value: number, locale: Locale): string {
   return value.toLocaleString(locale === "ar" ? "ar-EG" : "en-US");
+}
+
+/** Arabic-Indic digits in Arabic, for preformatted text such as a countdown. */
+export function localizeDigits(text: string, locale: Locale): string {
+  return locale === "ar" ? text.replace(/\d/g, (digit) => formatNumber(Number(digit), locale)) : text;
 }
