@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHAPTERS } from "../quran/chapters";
 import { QURAN_SCRIPT_IDS } from "./scripts";
+import { LINES_PER_PAGE, pageSlots } from "./slots";
 import { chapterPageRange } from "./verses";
 import { assembleChapterVerses, pageOfVerse, wordToPlainText } from "./verses";
 import type { PageChunk, PageLines, ScriptIndex } from "./types";
@@ -75,6 +76,25 @@ describe.each(QURAN_SCRIPT_IDS)("%s dataset", (id) => {
         expect(verse.end, verse.key).not.toBeNull();
       }
     }
+  });
+
+  it("opens every surah once, within the 15 line slots", () => {
+    const titles: number[] = [];
+    for (let page = 1; page <= index.pageCount; page++) {
+      const slots = pageSlots(pages.get(page)!, index.pageFirstVerse[page]);
+      const used = slots.reduce(
+        (sum, slot) => sum + (slot.kind === "line" ? 1 : slot.span),
+        0,
+      );
+      expect(used, `page ${page}`).toBe(LINES_PER_PAGE);
+      for (const slot of slots)
+        if (slot.kind === "opening" && slot.title) titles.push(slot.chapter);
+    }
+    // IndoPak starts Al-Hijr mid-line, leaving no room for its title.
+    const midLine = id === "indopak" ? [15] : [];
+    expect(titles).toEqual(
+      CHAPTERS.map((c) => c.id).filter((c) => !midLine.includes(c)),
+    );
   });
 });
 

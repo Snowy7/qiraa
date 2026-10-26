@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { timingIndexAt, wordAt } from "./audio/reciters";
 import { INITIAL_REVIEW_STATE, review } from "./hifz/srs";
-import { nextPrayer, prayerTimesFor } from "./prayer/times";
-import { juzOfVerse, parseVerseKey, verseOrdinal } from "./quran/verse-key";
+import { nextPrayer, prayerTimesFor, qiblaDirection } from "./prayer/times";
+import {
+  juzOfVerse,
+  parseVerseKey,
+  verseKeyFromQuery,
+  verseOrdinal,
+} from "./quran/verse-key";
 
 describe("verse keys", () => {
   it("orders verses across the whole Quran", () => {
@@ -15,6 +20,14 @@ describe("verse keys", () => {
     expect(parseVerseKey("1:8")).toBeNull();
     expect(parseVerseKey("115:1")).toBeNull();
     expect(parseVerseKey("2:255")).toEqual({ chapter: 2, verse: 255 });
+  });
+
+  it("reads typed references in Latin or Arabic-Indic digits", () => {
+    expect(verseKeyFromQuery(" 2:255 ")).toBe("2:255");
+    expect(verseKeyFromQuery("2.255")).toBe("2:255");
+    expect(verseKeyFromQuery("٢:٢٥٥")).toBe("2:255");
+    expect(verseKeyFromQuery("1:8")).toBeNull();
+    expect(verseKeyFromQuery("mercy")).toBeNull();
   });
 });
 
@@ -79,5 +92,12 @@ describe("recitation timings", () => {
     expect(timingIndexAt(verses, 6090)).toBe(1);
     expect(wordAt(verses[0], 600)).toBe(2);
     expect(wordAt(verses[0], 3000)).toBeNull();
+  });
+});
+
+describe("qibla", () => {
+  it("points from a city towards Makkah", () => {
+    expect(qiblaDirection({ lat: 51.5074, lng: -0.1278 })).toBeCloseTo(119, 0); // London
+    expect(qiblaDirection({ lat: 40.7128, lng: -74.006 })).toBeCloseTo(58.5, 0); // New York
   });
 });

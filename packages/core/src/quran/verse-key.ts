@@ -51,3 +51,18 @@ export function juzOfVerse(key: string): number {
   }
   return juz;
 }
+
+/**
+ * Reads a typed verse reference such as `2:255`, `2.255`, `2 255` or `٢:٢٥٥`
+ * (Arabic-Indic digits); null if it isn't a valid verse.
+ */
+export function verseKeyFromQuery(query: string): VerseKey | null {
+  const latin = query
+    .trim()
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  const match = /^(\d{1,3})\s*[:.\s]\s*(\d{1,3})$/.exec(latin);
+  if (!match) return null;
+  const chapter = Number(match[1]);
+  const verse = Number(match[2]);
+  return parseVerseKey(`${chapter}:${verse}`) ? toVerseKey(chapter, verse) : null;
+}
