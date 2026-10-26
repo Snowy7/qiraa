@@ -42,6 +42,18 @@ export function WordPopover() {
     });
   }, [word, gloss]);
 
+  // Highlight just the tapped word, wherever it's drawn. An attribute React
+  // doesn't manage, so re-renders of the word leave it alone.
+  useEffect(() => {
+    if (!word) return;
+    const elements = document.querySelectorAll(
+      `[data-word="${word.verseKey}:${word.position}"]`,
+    );
+    elements.forEach((element) => element.setAttribute("data-tapped", ""));
+    return () =>
+      elements.forEach((element) => element.removeAttribute("data-tapped"));
+  }, [word]);
+
   // Dismiss on Escape, scrolling, or a tap anywhere else.
   useEffect(() => {
     if (!word) return;

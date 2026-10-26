@@ -341,15 +341,37 @@ export function startWordHighlighting(): () => void {
       verse && !audio.paused ? wordAt(verse, audio.currentTime * 1000) : null;
     const key = verse && position ? `${verse.verseKey}:${position}` : null;
     if (key === active) return;
+    const previous = document.querySelector(".is-reciting-word");
+    const step =
+      verse && position && active?.startsWith(`${verse.verseKey}:`)
+        ? position - Number(active.slice(verse.verseKey.length + 1))
+        : 0;
     document
       .querySelectorAll(".is-reciting-word")
       .forEach((el) => el.classList.remove("is-reciting-word"));
-    if (key) {
-      document
-        .querySelectorAll(`[data-word="${key}"]`)
-        .forEach((el) => el.classList.add("is-reciting-word"));
-    }
+    const words = key ? document.querySelectorAll(`[data-word="${key}"]`) : [];
+    words.forEach((el) => el.classList.add("is-reciting-word"));
     active = key;
+
+    // Following along through a long ayah: when the recited word runs low
+    // on the screen, bring it back up. Only for the next few words (word
+    // timings occasionally jump), and not if the reader has scrolled away.
+    const word = words[0];
+    if (
+      !word ||
+      !previous ||
+      step < 1 ||
+      step > 3 ||
+      !usePreferences.getState().followRecitation
+    )
+      return;
+    const before = previous.getBoundingClientRect();
+    const watching = before.bottom > 0 && before.top < window.innerHeight;
+    if (
+      watching &&
+      word.getBoundingClientRect().bottom > window.innerHeight * 0.8
+    )
+      word.scrollIntoView({ block: "center", behavior: "smooth" });
   };
   audio.addEventListener("timeupdate", update);
   audio.addEventListener("pause", update);

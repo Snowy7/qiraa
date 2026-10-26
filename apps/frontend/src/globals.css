@@ -289,27 +289,18 @@
   }
 
   /*
-   * Mushaf pages. Lines are justified to `--line-em` em, the width of a full
-   * printed line in the script, so only the font-size changes, and a page
-   * is never wider than the stage (split across a two-page spread):
-   *  - scroll view: a reading-width page (42rem) times the text size;
-   *  - pages view: the size that fits the screen (width, and height from
-   *    tablet up) times the text size, so a larger size scrolls the page.
-   * `.mushaf-stage` sets `--line-em`, `--mushaf-lh`, `--spread` and
-   * `--quran-scale`.
+   * Mushaf pages. `.mushaf-stage` sets the script's `--line-em` (width of a
+   * full printed line) and `--mushaf-lh`, and `--mushaf-size`, worked out
+   * by useMushafLayout (pages/reader/mushaf.tsx). Printed lines are
+   * justified to `--line-em` em, so they match the print at any size. When
+   * the chosen text size is too large for a printed line to fit, the stage
+   * gets `data-flow` and the words flow as justified text instead.
    */
-  .mushaf-stage {
-    container-type: inline-size;
-  }
-
   .mushaf-page,
   .mushaf-slot {
-    /* Side padding of a page in em, both sides together. */
+    /* Side padding of a page in em, both sides together (as in the hook). */
     --pad-em: 1.6;
-    --fit-width: calc(
-      (100cqi - var(--spread-gap, 0px) * (var(--spread, 1) - 1)) /
-        var(--spread, 1) / (var(--line-em) + var(--pad-em))
-    );
+    font-size: var(--mushaf-size, 1.5rem);
     line-height: var(--mushaf-lh);
   }
 
@@ -322,35 +313,16 @@
   }
 
   .mushaf-page {
-    --fit-height: 100vh;
-    font-size: min(
-      var(--fit-width),
-      calc(min(var(--fit-width), var(--fit-height)) * var(--quran-scale, 1))
-    );
     padding: 0.8em calc(var(--pad-em) * 0.5em) 0.6em;
   }
 
-  @media (min-width: 768px) {
-    .mushaf-page {
-      --fit-height: calc(
-        (100dvh - var(--reader-chrome, 8rem)) / (17.2 * var(--mushaf-lh))
-      );
-    }
-  }
-
   /*
-   * A page's place in the scroll view. Every slot is as tall as the fullest
-   * page (16 line slots; a surah header takes two), so pages that haven't
-   * rendered yet hold their exact space and the scroll position maps to a
-   * page by arithmetic.
+   * A page's place in the scroll view. With printed lines every slot is as
+   * tall as the fullest page (16 line slots; a surah header takes two), so
+   * pages that haven't rendered yet hold their exact space. Flowing pages
+   * are as tall as their words need (see MushafScroll).
    */
   .mushaf-slot {
-    font-size: min(
-      var(--fit-width),
-      calc(
-        42rem * var(--quran-scale, 1) / (var(--line-em) + var(--pad-em))
-      )
-    );
     width: calc((var(--line-em) + var(--pad-em)) * 1em);
     height: calc((16 * var(--mushaf-lh) + 3) * 1em);
     margin-inline: auto;
@@ -361,6 +333,42 @@
   .mushaf-slot > .mushaf-page {
     font-size: inherit;
     height: 100%;
+  }
+
+  /*
+   * Flowing text: one justified block per page, as wide as the stage. The
+   * opening pages (`data-printed`) keep their short lines, fitted to it.
+   */
+  .mushaf-stage[data-flow] .mushaf-slot {
+    width: auto;
+    height: auto;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-slot > .mushaf-page {
+    height: auto;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-lines {
+    display: block;
+    text-align: justify;
+    text-align-last: start;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-line {
+    display: inline;
+    white-space: normal;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-page[data-printed] .mushaf-line {
+    max-width: 100%;
+  }
+
+  .mushaf-nbsp {
+    display: none;
+  }
+
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-nbsp {
+    display: inline;
   }
 
   /* A surah header (frame and Bismillah) fills exactly two line slots. */
@@ -399,6 +407,12 @@
 
   .mushaf-word.is-active {
     color: hsl(var(--primary));
+  }
+
+  /* The word whose meaning popover is open. */
+  [data-word][data-tapped] {
+    color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.12);
   }
 
   /* Only real pointers hover; on touch screens :hover sticks after a tap. */

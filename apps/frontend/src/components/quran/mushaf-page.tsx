@@ -29,9 +29,9 @@ interface MushafPageProps {
 
 /**
  * One page of the printed mushaf. Each line is justified to the script's
- * line width (in em), so lines match the print exactly at any size; the
- * font-size itself comes from `.mushaf-page` in globals.css, inside a
- * `.mushaf-stage` that sets the script's `--line-em` and `--mushaf-lh`.
+ * line width (in em), so lines match the print exactly at any size; a stage
+ * whose text is too large for that (`data-flow`) lets the words flow
+ * instead. Sizes come from the enclosing `.mushaf-stage` (globals.css).
  */
 export const MushafPage = memo(function MushafPage({
   script,
@@ -45,7 +45,9 @@ export const MushafPage = memo(function MushafPage({
   const reciting = useAudio((s) => (s.status === "idle" ? null : s.verseKey));
 
   const ready = lines && fontFamily;
-  // The opening pages have a few short, centred lines; let them fill the page.
+  // The opening pages have a few short, centred lines; let them fill the
+  // page. They keep those lines at every text size (`data-printed`), since
+  // filling the width is already as large as they can go.
   const linesRef = useRef<HTMLDivElement>(null);
   const openingPage = script.centeredLines === "madani" && page <= 2;
   const boost = useWordBoost(linesRef, openingPage && !!ready);
@@ -57,8 +59,12 @@ export const MushafPage = memo(function MushafPage({
       lang="ar"
       aria-label={`Page ${page}`}
       className="mushaf-page quran-text mx-auto flex flex-col"
+      data-printed={openingPage || undefined}
     >
-      <div ref={linesRef} className="flex flex-1 flex-col justify-center">
+      <div
+        ref={linesRef}
+        className="mushaf-lines flex flex-1 flex-col justify-center"
+      >
         {!ready
           ? Array.from({ length: 15 }, (_, i) => (
               <div key={i} className="mushaf-line">
@@ -120,7 +126,23 @@ export const MushafPage = memo(function MushafPage({
                           </span>,
                         );
                       }
-                      return spans;
+                      // Spaces only matter when the words flow (flex
+                      // lines drop them). An ayah's end marker stays with
+                      // its last word through a no-break space, which only
+                      // flowing text shows (a flex line would space it).
+                      return spans.flatMap((span, i) => [
+                        span,
+                        i === words.length - 1 && end !== undefined ? (
+                          <span
+                            key={`${verseKey}-nbsp`}
+                            className="mushaf-nbsp"
+                          >
+                            {"\u00a0"}
+                          </span>
+                        ) : (
+                          " "
+                        ),
+                      ]);
                     })}
                   </div>
                 </Fragment>
@@ -135,8 +157,9 @@ export const MushafPage = memo(function MushafPage({
 });
 
 /**
- * Scale factor that makes the widest line's words fill the line width.
- * Re-measured when the page resizes; rounded so measuring can't oscillate.
+ * Scale factor that makes the widest line's words fill the line width (or
+ * fit it, at text sizes where they'd overflow). Re-measured when the page
+ * resizes; rounded so measuring can't oscillate.
  */
 function useWordBoost(
   container: RefObject<HTMLDivElement | null>,
@@ -161,7 +184,7 @@ function useWordBoost(
       );
       setBoost((current) => {
         const natural = widest / current;
-        const next = Math.min(1.8, Math.max(1, (available * 0.92) / natural));
+        const next = Math.min(1.8, (available * 0.92) / natural);
         return Math.round(next * 100) / 100;
       });
     };
