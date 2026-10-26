@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "uniwind";
+
+/*
+ * Qiraa's palette, matching the web app: warm cream paper with amber ink in
+ * light, near-black with an amber accent in dark. JS reads these through
+ * `useThemeColors()` (lib/theme.ts) for native props such as tab and header tints.
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --color-background: hsl(40 46% 97%);
+      --color-foreground: hsl(26 33% 13%);
+      --color-card: hsl(40 60% 99.5%);
+      --color-primary: hsl(28 64% 33%);
+      --color-primary-foreground: hsl(40 60% 98%);
+      --color-secondary: hsl(37 40% 92%);
+      --color-muted-foreground: hsl(28 13% 42%);
+      --color-accent: hsl(36 90% 55%);
+      --color-destructive: hsl(2 70% 48%);
+      --color-border: hsl(35 30% 86%);
+      --color-quran-ink: hsl(24 38% 11%);
+      --color-verse-highlight: hsl(38 92% 55% / 0.14);
+      --color-reciting-word: hsl(20 88% 46%);
+    }
+
+    @variant dark {
+      --color-background: hsl(30 8% 5%);
+      --color-foreground: hsl(36 22% 92%);
+      --color-card: hsl(30 6% 8.5%);
+      --color-primary: hsl(35 84% 62%);
+      --color-primary-foreground: hsl(26 40% 8%);
+      --color-secondary: hsl(30 6% 13%);
+      --color-muted-foreground: hsl(32 9% 60%);
+      --color-accent: hsl(36 90% 58%);
+      --color-destructive: hsl(2 72% 58%);
+      --color-border: hsl(30 6% 16%);
+      --color-quran-ink: hsl(38 30% 93%);
+      --color-verse-highlight: hsl(38 92% 58% / 0.12);
+      --color-reciting-word: hsl(40 96% 64%);
+    }
+  }
+}
