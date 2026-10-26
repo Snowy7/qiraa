@@ -64,6 +64,8 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
   const frame = useMushafFrame(script, current);
   const stage = useRef<HTMLDivElement>(null);
   const layout = useMushafLayout(stage, script, "scroll", 1, quranTextScale);
+  // The page slots exist once the layout is measured.
+  const ready = layout !== null;
 
   // Links, surah picks and script switches go to their page; the URL
   // updates made by scrolling are already there.
@@ -96,7 +98,7 @@ function ScrollReader({ page, script }: { page: number; script: QuranScript }) {
     if (!slot.querySelector(`[data-word="${recitingVerse}:1"]`))
       slot.scrollIntoView();
     return revealVerse(slot, recitingVerse);
-  }, [recitingVerse, index]);
+  }, [recitingVerse, index, ready]);
 
   return (
     <ReaderLayout {...frame}>
@@ -348,24 +350,38 @@ function revealVerse(container: Element, verseKey: string) {
     revealWord(word);
     return;
   }
+  let frame = 0;
   const observer = new MutationObserver(() => {
     const drawn = container.querySelector(selector);
     if (!drawn) return;
     observer.disconnect();
-    revealWord(drawn);
+    // Drawing the page resizes it; let the scroll view settle its position
+    // first (a frame later), or it would undo the reveal.
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => revealWord(drawn));
+    });
   });
   observer.observe(container, { childList: true, subtree: true });
-  return () => observer.disconnect();
+  return () => {
+    observer.disconnect();
+    cancelAnimationFrame(frame);
+  };
 }
 
 /**
  * Centres a word being recited when it's low on the screen or hidden above
- * it (behind the reader's header).
+ * it (behind the reader's header). A word on screen glides there; one off
+ * screen jumps, which is quicker and can't be cut short while pages around
+ * it are still being drawn.
  */
 function revealWord(word: Element) {
   const { top, bottom } = word.getBoundingClientRect();
-  if (top < 96 || bottom > window.innerHeight * 0.7)
-    word.scrollIntoView({ block: "center", behavior: "smooth" });
+  if (top >= 96 && bottom <= window.innerHeight * 0.7) return;
+  const onScreen = bottom > 0 && top < window.innerHeight;
+  word.scrollIntoView({
+    block: "center",
+    behavior: onScreen ? "smooth" : "auto",
+  });
 }
 
 /**

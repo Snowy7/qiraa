@@ -76,9 +76,11 @@ export function MushafScroll({
     const slots = element.children as HTMLCollectionOf<HTMLElement>;
     const count = script.pageCount;
     let current = startPage;
-    /** Where the reading line is: a page and how far into it (0–1). */
-    let anchor = { page: startPage, offset: 0 };
-    let height = 0;
+    /**
+     * The spot under the reading line at the last update: a page, how far
+     * into it (0–1), and where that was in the document.
+     */
+    let anchor: { page: number; offset: number; y: number } | null = null;
 
     /** Index of the slot at `y` px from the top of the list. */
     const indexAt = (y: number) => {
@@ -92,30 +94,30 @@ export function MushafScroll({
       return low;
     };
 
+    /** Document position of a spot `offset` (0–1) into a page's slot. */
+    const spotY = (top: number, page: number, offset: number) => {
+      const slot = slots[page - 1];
+      return top + slot.offsetTop + offset * slot.offsetHeight;
+    };
+
     const update = () => {
-      const rect = element.getBoundingClientRect();
-      const top = rect.top + window.scrollY;
-      // Slots resized: put the reading line back on the same spot of the
-      // same page (a change below it needs no scroll, so a fling carries on).
-      if (height && rect.height !== height) {
-        const slot = slots[anchor.page - 1];
-        const target =
-          top +
-          slot.offsetTop +
-          anchor.offset * slot.offsetHeight -
-          window.innerHeight * READING_LINE;
-        if (Math.abs(target - window.scrollY) > 1)
-          window.scrollTo({ top: target });
+      const top = element.getBoundingClientRect().top + window.scrollY;
+      // Slots resized since the last update (pages drawn, text size,
+      // rotation): scroll by however far that moved the spot that was under
+      // the reading line. Only layout counts, so scrolls made in between,
+      // by the reader or the app, are never undone, and a change below the
+      // spot needs no scroll at all (a fling carries on).
+      if (anchor) {
+        const shift = spotY(top, anchor.page, anchor.offset) - anchor.y;
+        if (Math.abs(shift) > 0.5)
+          window.scrollTo({ top: window.scrollY + shift });
       }
-      height = rect.height;
 
       const line = window.scrollY + window.innerHeight * READING_LINE - top;
       const index = indexAt(line);
       const slot = slots[index];
-      anchor = {
-        page: index + 1,
-        offset: clamp((line - slot.offsetTop) / slot.offsetHeight, 0, 1),
-      };
+      const offset = clamp((line - slot.offsetTop) / slot.offsetHeight, 0, 1);
+      anchor = { page: index + 1, offset, y: spotY(top, index + 1, offset) };
 
       const first =
         indexAt(window.scrollY - window.innerHeight * OVERSCAN - top) + 1;
