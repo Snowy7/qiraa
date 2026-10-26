@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactNode,
   type RefObject,
 } from "react";
 import {
@@ -104,7 +105,7 @@ export const MushafPage = memo(function MushafPage({
                         "mushaf-word",
                         active && "is-active",
                       );
-                      const spans = words.map((word, i) => (
+                      const wordSpans = words.map((word, i) => (
                         <span
                           key={`${verseKey}-${i}`}
                           className={wordClass}
@@ -114,35 +115,32 @@ export const MushafPage = memo(function MushafPage({
                           <WordText word={word} />
                         </span>
                       ));
-                      if (end !== undefined) {
-                        spans.push(
-                          <span
-                            key={`${verseKey}-end`}
-                            className={cn(wordClass, "mushaf-end")}
-                            style={wordStyle}
-                            data-verse-end={verseKey}
-                          >
-                            {end}
-                          </span>,
-                        );
-                      }
                       // Spaces only matter when the words flow (flex
-                      // lines drop them). An ayah's end marker stays with
-                      // its last word through a no-break space, which only
-                      // flowing text shows (a flex line would space it).
-                      return spans.flatMap((span, i) => [
-                        span,
-                        i === words.length - 1 && end !== undefined ? (
-                          <span
-                            key={`${verseKey}-nbsp`}
-                            className="mushaf-nbsp"
-                          >
-                            {"\u00a0"}
-                          </span>
-                        ) : (
-                          " "
-                        ),
-                      ]);
+                      // lines drop them).
+                      const spaced = (spans: ReactNode[]) =>
+                        spans.flatMap((span) => [span, " "]);
+                      if (end === undefined) return spaced(wordSpans);
+                      const marker = (
+                        <span
+                          key={`${verseKey}-end`}
+                          className={cn(wordClass, "mushaf-end")}
+                          style={wordStyle}
+                          data-verse-end={verseKey}
+                        >
+                          {end}
+                        </span>
+                      );
+                      if (wordSpans.length === 0) return spaced([marker]);
+                      // An ayah's end marker never wraps away from its last
+                      // word: `.mushaf-keep` holds the two together in
+                      // flowing text and drops out of printed lines.
+                      return [
+                        ...spaced(wordSpans.slice(0, -1)),
+                        <span key={`${verseKey}-keep`} className="mushaf-keep">
+                          {wordSpans.at(-1)} {marker}
+                        </span>,
+                        " ",
+                      ];
                     })}
                   </div>
                 </Fragment>
@@ -157,9 +155,9 @@ export const MushafPage = memo(function MushafPage({
 });
 
 /**
- * Scale factor that makes the widest line's words fill the line width (or
- * fit it, at text sizes where they'd overflow). Re-measured when the page
- * resizes; rounded so measuring can't oscillate.
+ * Scale factor that makes the widest line fill 92% of the line width (or
+ * fit it, at text sizes where it would overflow). Re-measured when the page
+ * resizes; rounded down so measuring can't oscillate or overflow.
  */
 function useWordBoost(
   container: RefObject<HTMLDivElement | null>,
@@ -174,18 +172,26 @@ function useWordBoost(
       const lines = [...element.querySelectorAll<HTMLElement>(".mushaf-line")];
       if (lines.length === 0) return;
       const available = lines[0].clientWidth;
+      // How far each line's words reach, edge to edge. The opening pages'
+      // lines are centred and spaced in the words' own size, so this grows
+      // in step with the boost. Words and markers are measured themselves,
+      // as `.mushaf-keep` has no box in a printed line.
       const widest = Math.max(
-        ...lines.map((line) =>
-          [...line.children].reduce(
-            (sum, child) => sum + child.getBoundingClientRect().width,
-            0,
-          ),
-        ),
+        ...lines.map((line) => {
+          const rects = [
+            ...line.querySelectorAll("[data-word], [data-verse-end]"),
+          ].map((item) => item.getBoundingClientRect());
+          if (rects.length === 0) return 0;
+          return (
+            Math.max(...rects.map((rect) => rect.right)) -
+            Math.min(...rects.map((rect) => rect.left))
+          );
+        }),
       );
+      if (widest === 0) return;
       setBoost((current) => {
-        const natural = widest / current;
-        const next = Math.min(1.8, (available * 0.92) / natural);
-        return Math.round(next * 100) / 100;
+        const next = Math.min(1.8, (available * 0.92) / (widest / current));
+        return Math.floor(next * 100) / 100;
       });
     };
     measure();

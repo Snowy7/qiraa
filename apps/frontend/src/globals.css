@@ -357,18 +357,22 @@
   .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-line {
     display: inline;
     white-space: normal;
+    word-spacing: var(--flow-word-spacing);
   }
 
   .mushaf-stage[data-flow] .mushaf-page[data-printed] .mushaf-line {
     max-width: 100%;
   }
 
-  .mushaf-nbsp {
-    display: none;
+  /* An ayah's last word and end marker: separate items in a printed line,
+     one unbreakable pair in flowing text. */
+  .mushaf-keep {
+    display: contents;
   }
 
-  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-nbsp {
+  .mushaf-stage[data-flow] .mushaf-page:not([data-printed]) .mushaf-keep {
     display: inline;
+    white-space: nowrap;
   }
 
   /* A surah header (frame and Bismillah) fills exactly two line slots. */
@@ -388,9 +392,21 @@
     white-space: nowrap;
   }
 
+  /* Short, centred lines space their words by a margin in the words' own
+     size, so enlarged opening-page words keep their proportions. */
   .mushaf-line[data-centered] {
     justify-content: center;
-    column-gap: 0.2em;
+  }
+
+  .mushaf-line[data-centered] :is([data-word], [data-verse-end]) {
+    margin-inline: 0.1em;
+  }
+
+  /* Flowing text is spaced by real spaces. */
+  .mushaf-stage[data-flow]
+    .mushaf-page:not([data-printed])
+    :is([data-word], [data-verse-end]) {
+    margin-inline: 0;
   }
 
   .mushaf-word {
