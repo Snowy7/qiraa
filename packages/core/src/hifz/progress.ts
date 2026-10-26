@@ -58,21 +58,27 @@ export interface HifzSummary {
   streak: number;
 }
 
-const dayKey = (time: number) => {
+/** The local calendar day of a moment, as `YYYY-M-D`; streaks count these. */
+export function reviewDay(time: number): string {
   const d = new Date(time);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-};
+}
 
-/** Everything a memorisation dashboard shows, in one pass over the records. */
+/**
+ * Everything a memorisation dashboard shows, in one pass over the records.
+ * Records only keep their latest review, so pass every `reviewDay` the user
+ * reviewed on for the streak to survive re-reviewing the same verses.
+ */
 export function summarizeHifz(
   records: Iterable<
     Pick<HifzRecord, "confidence"> &
       Partial<Pick<HifzRecord, "lastReviewedAt" | "nextReviewAt">>
   >,
   now: Date,
+  days: Iterable<string> = [],
 ): HifzSummary {
-  const today = dayKey(now.getTime());
-  const reviewDays = new Set<string>();
+  const today = reviewDay(now.getTime());
+  const reviewDays = new Set(days);
   const summary: HifzSummary = {
     total: TOTAL_VERSES,
     memorized: 0,
@@ -89,7 +95,7 @@ export function summarizeHifz(
     if (record.nextReviewAt !== undefined && record.nextReviewAt <= now.getTime())
       summary.due++;
     if (record.lastReviewedAt !== undefined) {
-      const key = dayKey(record.lastReviewedAt);
+      const key = reviewDay(record.lastReviewedAt);
       reviewDays.add(key);
       if (key === today) summary.reviewedToday++;
     }
@@ -97,7 +103,7 @@ export function summarizeHifz(
 
   const cursor = new Date(now);
   if (!reviewDays.has(today)) cursor.setDate(cursor.getDate() - 1);
-  while (reviewDays.has(dayKey(cursor.getTime()))) {
+  while (reviewDays.has(reviewDay(cursor.getTime()))) {
     summary.streak++;
     cursor.setDate(cursor.getDate() - 1);
   }
